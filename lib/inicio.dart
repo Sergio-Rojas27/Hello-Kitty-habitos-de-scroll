@@ -877,6 +877,18 @@ Widget build(BuildContext context) {
   }
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
 class TutorDashboardScreen extends StatelessWidget {
   const TutorDashboardScreen({super.key});
 
@@ -888,15 +900,20 @@ class TutorDashboardScreen extends StatelessWidget {
       body: Column(
         children: [
           // 1. HEADER (Top Bar redondeada)
-          _buildTopHeader(),
+          _buildTopHeader(context),
 
           const SizedBox(height: 20),
-
           
+          const SizedBox(height: 10),
+          Image.asset(
+            'assets/titulo.png',
+            height: 70,
+            fit: BoxFit.contain,
+          ),
           const SizedBox(height: 20),
-
           // 3. BOTONES DEL MENÚ (Basados en los Casos de Uso)
           Expanded(
+           
             child: ListView(
               padding: const EdgeInsets.symmetric(horizontal: 30),
               children: [
@@ -940,127 +957,166 @@ class TutorDashboardScreen extends StatelessWidget {
   }
 
   // --- WIDGET: HEADER SUPERIOR ---
-  Widget _buildTopHeader() {
+  Widget _buildTopHeader(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.only(top: 60, left: 20, right: 20, bottom: 25),
+      padding: const EdgeInsets.only(top: 30, left: 30, right: 30, bottom: 35), // Aumenté un poco el 'top' para que no choque con la barra de estado del teléfono
       decoration: const BoxDecoration(
-        color: Colors.white,
+        color: Color(0xFFD6213B), // Fondo rojo principal
         borderRadius: BorderRadius.only(
           bottomLeft: Radius.circular(50),
           bottomRight: Radius.circular(50),
         ),
         boxShadow: [
-          BoxShadow(color: Colors.black12, blurRadius: 15, offset: Offset(0, 5))
+          BoxShadow(
+            color: Color(0x40D6213B), // Sombra del mismo tono rojo pero más suave
+            blurRadius: 20, 
+            offset: Offset(0, 8)
+          )
         ],
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // Avatar y Nivel/Nombre
-          Row(
-            children: [
-              // Avatar con el "Badge" (Etiqueta) de Tutor
-              Stack(
-                clipBehavior: Clip.none,
-                alignment: Alignment.bottomCenter,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(3),
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFD6213B),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const CircleAvatar(
-                      radius: 35,
-                      backgroundColor: Colors.white,
-                      // backgroundImage: AssetImage('assets/tutor_avatar.png'), 
-                      child: Icon(Icons.person, size: 40, color: Colors.grey),
-                    ),
-                  ),
-                  Positioned(
-                    bottom: -10,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFFB703), // Amarillo dorado
-                        borderRadius: BorderRadius.circular(15),
-                        border: Border.all(color: Colors.white, width: 2),
+          // Sección Izquierda: Avatar y Textos
+          Expanded( // Usamos Expanded para evitar que textos muy largos rompan el diseño
+            child: Row(
+              children: [
+                // Avatar con el "Badge" (Etiqueta) de Tutor
+                Stack(
+                  clipBehavior: Clip.none,
+                  alignment: Alignment.bottomCenter,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(4), // Borde blanco un poco más grueso
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(color: Colors.black12, blurRadius: 5, offset: Offset(0, 3))
+                        ]
                       ),
-                      child: const Text(
-                        'Tutor',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                      child: const CircleAvatar(
+                        radius: 35,
+                        backgroundColor: Color(0xFFFFF5F6), // Un rosita muy suave de fondo
+                        // backgroundImage: AssetImage('assets/tutor_avatar.png'), 
+                        child: Icon(Icons.person_outline_rounded, size: 40, color: Color(0xFFD6213B)), // Ícono rojo para contrastar
+                      ),
+                    ),
+                    Positioned(
+                      bottom: -12,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Color(0xFFFBE750), // Amarillo dorado
+                          borderRadius: BorderRadius.circular(15),
+                          border: Border.all(color: Colors.white, width: 2.5), // Borde más pronunciado
+                          boxShadow: const [
+                            BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))
+                          ]
+                        ),
+                        child: const Text(
+                          'Tutor',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w900, // Letra más gruesa
+                            color: Colors.white,
+                            letterSpacing: 0.5,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(width: 15),
-              // Textos (Nombre, Nivel, Puntos)
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Mamá / Papá', // Aquí iría el nombre dinámico
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFFD6213B),
-                    ),
-                  ),
-                  const SizedBox(height: 5),
-                  Row(
+                  ],
+                ),
+                const SizedBox(width: 20),
+                
+                // Textos (Nombre, Nivel, Puntos)
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        'Nivel 1',
+                        'Mamá / Papá', 
                         style: TextStyle(
-                          color: Colors.grey,
-                          fontWeight: FontWeight.bold,
+                          fontSize: 22, // Un poco más grande
+                          fontWeight: FontWeight.w900,
+                          color: Colors.white,
+                          letterSpacing: 0.5,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis, // Por si el nombre es muy largo
                       ),
-                      const SizedBox(width: 10),
-                      // Pildorita de puntos
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFFB703),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Row(
-                          children: [
-                            Icon(Icons.stars, color: Colors.white, size: 14),
-                            SizedBox(width: 4),
-                            Text(
-                              '235pts',
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2), // Fondo translúcido en vez de texto gris
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Text(
+                              'Nivel 1',
                               style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
+                                color: Colors.white, // Blanco para que se lea sobre el rojo
                                 fontWeight: FontWeight.bold,
+                                fontSize: 13,
                               ),
                             ),
-                          ],
-                        ),
+                          ),
+                          const SizedBox(width: 8),
+                          // Pildorita de puntos
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Color(0xFFFBE750),
+                              borderRadius: BorderRadius.circular(10),
+                              boxShadow: const [
+                                BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))
+                              ]
+                            ),
+                            child: const Row(
+                              children: [
+                                Icon(Icons.stars_rounded, color: Colors.white, size: 16), // Ícono más redondo
+                                SizedBox(width: 4),
+                                Text(
+                                  '235 pts',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
-                ],
-              ),
-            ],
-          ),
-          // Ícono de acción derecho (Ej: Cofre o Ajustes)
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFFF5F6),
-              borderRadius: BorderRadius.circular(15),
+                ),
+              ],
             ),
-            child: const Icon(
-              Icons.settings, // Cambia por un asset de cofre si lo tienes
-              color: Color(0xFFD6213B),
-              size: 30,
+          ),
+          
+          const SizedBox(width: 15),
+
+          // Ícono de acción derecho (Ajustes)
+          // Ícono de acción derecho (Ajustes)
+          GestureDetector(
+            onTap: () {
+              // Navegar a la pantalla de configuración
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const AccountSettingsScreen()),
+              );
+            },
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              child: const Icon(
+                Icons.settings_rounded, 
+                color: Colors.white, 
+                size: 28,
+              ),
             ),
           ),
         ],
@@ -1109,9 +1165,9 @@ class TutorDashboardScreen extends StatelessWidget {
   // --- WIDGET: BARRA INFERIOR ---
   Widget _buildBottomNav() {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 40),
+      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 70),
       decoration: const BoxDecoration(
-        color: Colors.white,
+        color:  const Color(0xFFD6213B),
         borderRadius: BorderRadius.only(
           topLeft: Radius.circular(40),
           topRight: Radius.circular(40),
@@ -1125,32 +1181,325 @@ class TutorDashboardScreen extends StatelessWidget {
         children: [
           _navItem(Icons.home_rounded, true),
           _navItem(Icons.list_alt_rounded, false),
-          _navItem(Icons.person_outline, false),
+          _navItem(Icons.amp_stories_rounded, false),
         ],
       ),
     );
   }
 
-  Widget _navItem(IconData icon, bool isActive) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(
+Widget _navItem(IconData icon, bool isActive) {
+    return Container(
+      // Le damos un tamaño un poco mayor al ícono (32) para que el círculo se vea bien
+      width: 50, 
+      height: 50,
+      decoration: BoxDecoration(
+        // Si está activo el fondo es blanco, si no, es transparente
+        color: isActive ? Colors.white : Colors.transparent, 
+        shape: BoxShape.circle,
+      ),
+      child: Center(
+        child: Icon(
           icon,
           size: 32,
-          color: isActive ? const Color(0xFFD6213B) : Colors.grey.shade400,
+          // Si está activo el ícono es rojo, si no, es blanco
+          color: isActive ? const Color(0xFFD6213B) : Colors.white,
         ),
-        if (isActive)
+      ),
+    );
+  }
+}
+
+
+
+
+class AccountSettingsScreen extends StatelessWidget {
+  const AccountSettingsScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFFFF5F6), // Fondo rosita de Hello Kitty
+      body: Column(
+        children: [
+          // 1. HEADER (Top Bar)
           Container(
-          
-            width: 6,
-            height: 6,
+            width: double.infinity,
+            padding: const EdgeInsets.only(top: 60, left: 30, right: 30, bottom: 35),
             decoration: const BoxDecoration(
               color: Color(0xFFD6213B),
-              shape: BoxShape.circle,
+              borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(50),
+                bottomRight: Radius.circular(50),
+              ),
+              boxShadow: [
+                BoxShadow(color: Color(0x40D6213B), blurRadius: 20, offset: Offset(0, 8))
+              ],
             ),
-          )
-      ],
+            child: Row(
+              children: [
+                // Botón de regresar
+                GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+                  ),
+                ),
+                const SizedBox(width: 20),
+                const Text(
+                  'Configuración',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          
+          const SizedBox(height: 30),
+          
+          // 2. OPCIONES DE LA CUENTA
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.symmetric(horizontal: 30),
+              children: [
+                // Título de sección
+                const Padding(
+                  padding: EdgeInsets.only(left: 10, bottom: 15),
+                  child: Text(
+                    'Mi Cuenta',
+                    style: TextStyle(
+                      color: Color(0xFFD6213B),
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                
+                // Botón: Editar Cuenta
+                _buildSettingsOption(
+                  title: 'Editar cuenta',
+                  subtitle: 'Modifica tu nombre, correo o avatar',
+                  icon: Icons.edit_rounded,
+                  onTap: () {
+                    // Aquí iría la lógica o navegación para editar
+                  },
+                ),
+                
+                // Botón Extra: Cambiar PIN de Seguridad (Ideal para el Tutor)
+                _buildSettingsOption(
+                  title: 'Privacidad y Seguridad',
+                  subtitle: 'Cambia tu PIN de seguridad',
+                  icon: Icons.lock_rounded,
+                  onTap: () {
+                    // Navegar a cambiar PIN
+                  },
+                ),
+
+                // Botón: Borrar Cuenta (Zona de Peligro)
+                _buildDeleteAccountOption(context),
+              ],
+            ),
+          ),
+
+          // 3. BOTTOM NAVIGATION BAR AÑADIDO AQUÍ
+          _buildBottomNav(context),
+        ],
+      ),
+    );
+  }
+
+  // --- WIDGET REUTILIZABLE PARA OPCIONES NORMALES ---
+  Widget _buildSettingsOption({
+    required String title, 
+    required String subtitle, 
+    required IconData icon, 
+    required VoidCallback onTap
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 20),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(25),
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(25),
+            boxShadow: const [
+              BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, 4))
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF5F6), // Fondo rosita
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                child: Icon(icon, color: const Color(0xFFD6213B), size: 28),
+              ),
+              const SizedBox(width: 20),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right_rounded, color: Colors.grey),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // --- WIDGET ESPECIAL PARA BORRAR CUENTA ---
+  Widget _buildDeleteAccountOption(BuildContext context) {
+    return InkWell(
+      onTap: () {
+        // Muestra un modal emergente para confirmar
+        _showDeleteConfirmation(context);
+      },
+      borderRadius: BorderRadius.circular(25),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(25),
+          border: Border.all(color: Colors.red.shade200, width: 2), // Borde rojo tenue para indicar advertencia
+          boxShadow: const [
+            BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, 4))
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.red.shade50,
+                borderRadius: BorderRadius.circular(15),
+              ),
+              child: const Icon(Icons.delete_forever_rounded, color: Colors.red, size: 28),
+            ),
+            const SizedBox(width: 20),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Borrar cuenta',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.red),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    'Esta acción no se puede deshacer',
+                    style: TextStyle(fontSize: 13, color: Colors.redAccent),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Función para mostrar una ventana de advertencia antes de borrar
+  void _showDeleteConfirmation(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+          title: const Text('¿Estás seguro?', style: TextStyle(color: Color(0xFFD6213B), fontWeight: FontWeight.bold)),
+          content: const Text('Si borras tu cuenta, se perderán todos los avances, puntos y tareas del niño. Esta acción es permanente.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context), // Cierra el diálogo
+              child: const Text('Cancelar', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                // Aquí va la lógica de backend para borrar la cuenta
+                Navigator.pop(context);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              ),
+              child: const Text('Sí, borrar cuenta', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // --- WIDGET: BARRA INFERIOR ---
+  Widget _buildBottomNav(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 70),
+      decoration: const BoxDecoration(
+        color: Color(0xFFD6213B),
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(40),
+          topRight: Radius.circular(40),
+        ),
+        boxShadow: [
+          BoxShadow(color: Colors.black12, blurRadius: 15, offset: Offset(0, -5))
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          // Al tocar "Home", regresamos al Dashboard original
+          GestureDetector(
+            onTap: () => Navigator.pop(context),
+            child: _navItem(Icons.home_rounded, false),
+          ),
+          _navItem(Icons.list_alt_rounded, false),
+          // El tercer ícono indica el menú de perfil/cuenta, por lo que está activo
+          _navItem(Icons.amp_stories_rounded, false), 
+        ],
+      ),
+    );
+  }
+
+  // Elemento individual del Navbar
+  Widget _navItem(IconData icon, bool isActive) {
+    return Container(
+      width: 50, 
+      height: 50,
+      decoration: BoxDecoration(
+        color: isActive ? Colors.white : Colors.transparent, 
+        shape: BoxShape.circle,
+      ),
+      child: Center(
+        child: Icon(
+          icon,
+          size: 32,
+          color: isActive ? const Color(0xFFD6213B) : Colors.white,
+        ),
+      ),
     );
   }
 }
