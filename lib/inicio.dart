@@ -23,24 +23,49 @@ class LandingScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
-      body: Column(
+      body: Stack(
         children: [
-          _buildHeader('Hello Kitty:', 'My little world & habits'),
-          const Spacer(),
-          const Icon(Icons.auto_awesome, size: 120, color: Color(0xFFFFD54F)),
-          const Spacer(),
-          _buildMainButton(
-            context, 
-            'COMENZAR', 
-            () => Navigator.push(context, MaterialPageRoute(builder: (context) => const LoginScreen()))
+          // 1. La imagen de fondo
+          Container(
+            decoration: const BoxDecoration(
+              image: DecorationImage(
+                image: AssetImage('assets/f1.png'), // Asegúrate de tenerla en pubspec.yaml
+                fit: BoxFit.fill, // Esto hace que la imagen llene toda la pantalla
+              ),
+            ),
+          ),
+          
+          // 2. Tu contenido original encima
+          SafeArea( // Agregamos SafeArea para que el contenido no choque con el notch
+            child: Column(
+    
+      
+              children: [
+                
+               Container(
+                  decoration: const BoxDecoration(
+                    image: DecorationImage(
+                      image: AssetImage('assets/titulo.png'), // Asegúrate de tenerla en pubspec.yaml
+                      fit: BoxFit.cover, // Esto hace que la imagen llene toda la pantalla
+                    ),
+                  ),
+                ),
+                const Spacer(),
+                
+                _buildMainButton(
+                  context, 
+                  'Comenzar', 
+                  () => Navigator.push(context, MaterialPageRoute(builder: (context) => const LoginScreen()))
+                ),
+                const SizedBox(height: 20), // Un pequeño margen abajo
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 }
-
 // --- 2. LOGIN SCREEN (NUEVA) ---
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -55,48 +80,96 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            _buildHeader('¡HOLA!', 'Inicia sesión para continuar'),
-            const SizedBox(height: 50),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 30),
-              child: Column(
-                children: [
-                  _inputField('Usuario', Icons.person_outline),
-                  const SizedBox(height: 20),
-                  _inputField('Contraseña', Icons.lock_outline, isPass: true),
-                  const SizedBox(height: 40),
-                  _buildMainButton(
-                    context, 
-                    'ENTRAR', 
-                    () => Navigator.push(context, MaterialPageRoute(builder: (context) => const RoleSelectionScreen()))
-                  ),
-                ],
+      // Quitamos el backgroundColor para que no tape la imagen
+      body: Stack(
+        children: [
+          // 1. Capa del fondo: La imagen que ocupa todo
+           Container(
+            decoration: BoxDecoration(
+              image: DecorationImage(
+                image: const AssetImage('assets/f2.png'),
+                fit: BoxFit.cover,
+                colorFilter: ColorFilter.mode(
+                  Colors.white.withOpacity(0.5),
+                  BlendMode.dstATop,
+                ),
               ),
             ),
-          ],
+          ),
+
+          
+          // 2. Capa del contenido: El formulario con scroll
+          SafeArea(
+  child: Column(
+    children: [
+      // 1. El Header se queda fijo arriba
+      _buildHeader(), 
+
+      // 2. El contenido central (Inputs) con Scroll
+      Expanded(
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 50),
+            child: Column(
+              children: [
+                const SizedBox(height: 50),
+                const Text(
+                  '¡HOLA!',
+                  style: TextStyle(
+                    fontSize: 28, 
+                    fontWeight: FontWeight.bold, 
+                    color: Color(0xFFD6213B)
+                  ),
+                ),
+                const Text('Inicia sesión para continuar', style: TextStyle(color: Color(0xFFD6213B),fontSize: 18, )),
+                const SizedBox(height: 40),
+                _inputField('Usuario', Icons.person_outline),
+                const SizedBox(height: 20),
+                _inputField('Contraseña', Icons.lock_outline, isPass: true),
+                const SizedBox(height: 20), // Espacio extra para respirar
+              ],
+            ),
+          ),
         ),
       ),
+
+      // 3. El botón se queda FIJO ABAJO con su margen
+      Padding(
+        padding: const EdgeInsets.fromLTRB(25, 10, 25, 30), // (Izquierda, Arriba, Derecha, Abajo)
+        child: _buildMainButton(
+          context, 
+          'ENTRAR', 
+          () => Navigator.push(
+            context, 
+            MaterialPageRoute(builder: (context) => const RoleSelectionScreen())
+          ),
+        ),
+      ),
+    ],
+  ),
+)
+        ], // Cierre de children del Stack
+      ), // Cierre del Stack
     );
   }
 
+  // Tu función _inputField está muy bien, solo asegúrate de que esté dentro de la clase
   Widget _inputField(String hint, IconData icon, {bool isPass = false}) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Colors.white.withOpacity(0.9), // Tip: un toque de transparencia queda genial
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, 4))],
+        boxShadow: const [
+          BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, 4))
+        ],
       ),
       child: TextField(
         obscureText: isPass ? _obscureText : false,
         decoration: InputDecoration(
           hintText: hint,
-          prefixIcon: Icon(icon, color: const Color(0xFFFFD54F)),
+          prefixIcon: Icon(icon, color: Color(0xFFD6213B)),
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
+          contentPadding: const EdgeInsets.symmetric(vertical: 20, horizontal: 50),
           suffixIcon: isPass ? IconButton(
             icon: Icon(_obscureText ? Icons.visibility_off : Icons.visibility),
             onPressed: () => setState(() => _obscureText = !_obscureText),
@@ -121,40 +194,84 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
-      body: Column(
+      body: Stack(
         children: [
-          _buildHeader('DAVE\'S', 'KINGDOM'),
-          const SizedBox(height: 40),
-          const Text('¿Desea ingresar como niño\no como tutor?', 
-            textAlign: TextAlign.center, 
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)
+          // 1. Fondo de imagen que cubre todo
+          Container(
+            decoration: BoxDecoration(
+              image: DecorationImage(
+                image: const AssetImage('assets/f2.png'),
+                fit: BoxFit.cover,
+                colorFilter: ColorFilter.mode(
+                  Colors.white.withOpacity(0.5),
+                  BlendMode.dstATop,
+                ),
+              ),
+            ),
           ),
-          const SizedBox(height: 40),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _roleCircle('Tutor', selectedRole == 'tutor', () => setState(() => selectedRole = 'tutor')),
-              const SizedBox(width: 30),
-              _roleCircle('Niño', selectedRole == 'niño', () => setState(() => selectedRole = 'niño')),
-            ],
+
+          // 2. Contenido de la pantalla
+          SafeArea(
+            child: Column(
+    children: [
+      _buildHeader(), // <-- Llamada limpia sin textos
+      const SizedBox(height: 80),
+      const Text(
+        '¿Desea ingresar como niño\no como tutor?',
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          fontSize: 20, 
+          fontWeight: FontWeight.bold,
+          color: Color(0xFFD6213B),
+        ),
+      ),
+      const Spacer(),// Empuja la selección al centro
+                
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _roleCircle('Tutor', selectedRole == 'tutor', 
+                      () => setState(() => selectedRole = 'tutor')),
+                    const SizedBox(width: 30),
+                    _roleCircle('Niño', selectedRole == 'niño', 
+                      () => setState(() => selectedRole = 'niño')),
+                  ],
+                ),
+                
+                const Spacer(), // Empuja el botón hacia abajo
+
+                // 3. BOTÓN INFERIOR CON MARGEN (Sin tocar el fondo)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 25.0, vertical: 40.0),
+                  child: ElevatedButton(
+                    onPressed: selectedRole.isEmpty 
+                      ? null 
+                      : () {
+                          if (selectedRole == 'tutor') {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => const PinSecurityScreen()),
+                            );
+                          }
+                        },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFD6213B),
+                      disabledBackgroundColor: Colors.grey.shade400,
+                      minimumSize: const Size(double.infinity, 60),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                      elevation: 5,
+                    ),
+                    child: const Text(
+                      'CONTINUAR',
+                      style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
-          const Spacer(),
-          _buildMainButton(context, 'CONTINUAR', selectedRole.isEmpty ? null : () {
-            if (selectedRole == 'niño') {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const KidMapScreen()),
-              );
-            } else {
-              // Aquí podrías enviar a la pantalla de Tutor si la tienes
-              // Pide el PIN antes de entrar
-              Navigator.push(
-                context, 
-                MaterialPageRoute(builder: (context) => const PinSecurityScreen())
-              );
-            }
-          }),
         ],
       ),
     );
@@ -165,23 +282,40 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
       onTap: onTap,
       child: Column(
         children: [
-          Container(
+          AnimatedContainer( // Agregamos una pequeña animación al seleccionar
+            duration: const Duration(milliseconds: 200),
             padding: const EdgeInsets.all(5),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              border: Border.all(color: const Color(0xFFFFD54F), width: 6),
+              border: Border.all(
+                color: isSelected ? const Color(0xFFD6213B) : Colors.grey, 
+                width: 6,
+              ),
+              boxShadow: isSelected ? [
+                BoxShadow(color: Colors.black26, blurRadius: 10, offset: Offset(0, 5))
+              ] : [],
             ),
             child: CircleAvatar(
               radius: 45,
-              backgroundColor: isSelected ? const Color(0xFFFFD54F).withOpacity(0.4) : Colors.white,
-              child: Icon(Icons.person, size: 40, color: isSelected ? Colors.orange : Colors.grey),
+              backgroundColor: Colors.white,
+              child: Icon(
+                label == 'Tutor' ? Icons.settings_accessibility : Icons.child_care, 
+                size: 50, 
+                color: isSelected ? const Color(0xFFD6213B) : Colors.grey,
+              ),
             ),
           ),
           const SizedBox(height: 10),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
-            decoration: BoxDecoration(color: const Color(0xFFFFD54F), borderRadius: BorderRadius.circular(15)),
-            child: Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+            decoration: BoxDecoration(
+              color: isSelected ? const Color(0xFFD6213B) : Colors.grey,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              label,
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),
@@ -191,194 +325,47 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
 
 // --- WIDGETS REUTILIZABLES (Para mantener el estilo) ---
 
-Widget _buildHeader(String title, String subtitle) {
+Widget _buildHeader() {
   return Container(
     width: double.infinity,
-    padding: const EdgeInsets.symmetric(vertical: 50, horizontal: 20),
+    padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 20),
     decoration: const BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.only(bottomLeft: Radius.circular(60), bottomRight: Radius.circular(60)),
+      color: Color(0xFFD6213B), // Tu rojo característico
+      borderRadius: BorderRadius.only(
+        bottomLeft: Radius.circular(60),
+        bottomRight: Radius.circular(60),
+      ),
     ),
     child: Column(
       children: [
-        Text(title, style: const TextStyle(fontSize: 35, fontWeight: FontWeight.bold, color: Color(0xFFFFD54F))),
-        Text(subtitle, style: const TextStyle(fontSize: 20, color: Color(0xFFFFD54F), fontWeight: FontWeight.w500), textAlign: TextAlign.center),
+        const SizedBox(height: 10), // Espacio extra para que no pegue arriba
+        Image.asset(
+          'assets/titulo.png', // <--- Asegúrate de que la ruta sea correcta
+          height: 80,       // Ajusta el tamaño según tu logo
+          fit: BoxFit.contain,
+        ),
+        const SizedBox(height: 10),
       ],
     ),
   );
 }
-
+// Widget _buildMainButton actualizado
 Widget _buildMainButton(BuildContext context, String text, VoidCallback? onPressed) {
   return Padding(
     padding: const EdgeInsets.all(30.0),
     child: ElevatedButton(
       onPressed: onPressed,
       style: ElevatedButton.styleFrom(
-        backgroundColor: const Color(0xFFFFD54F),
+        // Fondo en el rojo RGB (214, 33, 59) especificado
+        backgroundColor: const Color(0xFFD6213B), 
         minimumSize: const Size(double.infinity, 60),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        elevation: 5,
+        // Radio de borde más grande (30) para efecto de gomita
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+        elevation: 5, // Mantenemos la sombra para profundidad
       ),
       child: Text(text, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)),
     ),
   );
-}
-
-class KidMapScreen extends StatelessWidget {
-  const KidMapScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
-      body: SafeArea(
-        child: Column(
-          children: [
-            // --- Header de Perfil ---
-            _buildProfileHeader(),
-
-            // --- Mapa de Reinos (Scrollable) ---
-            Expanded(
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  // Línea vertical amarilla de fondo
-                  Container(width: 8, color: const Color(0xFFFFD54F)),
-                  
-                  ListView(
-                    padding: const EdgeInsets.symmetric(vertical: 40),
-                    children: [
-                      _buildKingdomLevel(
-                        level: "1",
-                        name: "Reino 1",
-                        image: Icons.home_work_outlined, // Reemplazar por tu asset de casa
-                        isLeft: true,
-                      ),
-                      _buildKingdomLevel(
-                        level: "2",
-                        name: "Reino 2",
-                        image: Icons.fort_outlined, // Reemplazar por tu asset de castillo 1
-                        isLeft: false,
-                      ),
-                      _buildKingdomLevel(
-                        level: "3",
-                        name: "Reino 3",
-                        image: Icons.castle_outlined, // Reemplazar por tu asset de castillo 2
-                        isLeft: true,
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-
-            // --- Bottom Navigation Bar ---
-            _buildBottomNav(),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // Widget del Header
-  Widget _buildProfileHeader() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(40),
-          bottomRight: Radius.circular(40),
-        ),
-      ),
-      child: Row(
-        children: [
-          const CircleAvatar(
-            radius: 35,
-            backgroundColor: Color(0xFFFFD54F),
-            child: CircleAvatar(radius: 31, backgroundColor: Colors.white, child: Icon(Icons.face, size: 40)),
-          ),
-          const SizedBox(width: 15),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('Maria Castillo', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFFFFD54F))),
-                Row(
-                  children: [
-                    const Text('Nivel 1', style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold)),
-                    const SizedBox(width: 10),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(color: const Color(0xFFFFD54F), borderRadius: BorderRadius.circular(20)),
-                      child: const Text('⭐ 235pts', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          const Icon(Icons.inventory_2_outlined, size: 40, color: Colors.brown),
-        ],
-      ),
-    );
-  }
-
-  // Widget para cada nivel del mapa
-  Widget _buildKingdomLevel({required String level, required String name, required IconData image, required bool isLeft}) {
-    Widget kingdomInfo = Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (!isLeft) const SizedBox(width: 20),
-        Icon(image, size: 80, color: Colors.black87),
-        if (isLeft) const SizedBox(width: 20),
-        Text(name, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-      ],
-    );
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 20),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          // Lado izquierdo
-          Expanded(child: isLeft ? Align(alignment: Alignment.centerRight, child: kingdomInfo) : const SizedBox()),
-          
-          // Círculo del número
-          Container(
-            width: 50,
-            height: 50,
-            decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0xFFFFD54F), boxShadow: [BoxShadow(blurRadius: 5, color: Colors.black26)]),
-            child: Center(child: Text(level, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold))),
-          ),
-
-          // Lado derecho
-          Expanded(child: !isLeft ? Align(alignment: Alignment.centerLeft, child: kingdomInfo) : const SizedBox()),
-        ],
-      ),
-    );
-  }
-
-  // Widget del menú inferior
-  Widget _buildBottomNav() {
-    return Container(
-      margin: const EdgeInsets.all(20),
-      padding: const EdgeInsets.symmetric(vertical: 15),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(40),
-        boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 10)],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: const [
-          Icon(Icons.description_outlined, size: 35, color: Colors.orange),
-          Icon(Icons.fort_outlined, size: 35, color: Colors.grey),
-          Icon(Icons.menu_book_outlined, size: 35, color: Colors.redAccent),
-        ],
-      ),
-    );
-  }
 }
 
 class PinSecurityScreen extends StatefulWidget {
@@ -392,257 +379,134 @@ class _PinSecurityScreenState extends State<PinSecurityScreen> {
   final TextEditingController _pinController = TextEditingController();
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
-      body: Column(
-        children: [
-          // Header consistente
-          _buildSimpleHeader('ÁREA DE TUTOR', 'Ingresa tu PIN de seguridad'),
-          
-          const Spacer(),
-          
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 40),
-            child: Column(
-              children: [
-                const Icon(Icons.lock_person, size: 80, color: Color(0xFFFFD54F)),
-                const SizedBox(height: 30),
-                
-                // Campo de PIN
-                Container(
-                  width: 200,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10)],
-                  ),
-                  child: TextField(
-                    controller: _pinController,
-                    keyboardType: TextInputType.number,
-                    obscureText: true,
-                    textAlign: TextAlign.center,
-                    maxLength: 4,
-                    style: const TextStyle(fontSize: 30, letterSpacing: 20, fontWeight: FontWeight.bold),
-                    decoration: const InputDecoration(
-                      counterText: "",
-                      border: InputBorder.none,
-                      hintText: "••••",
+Widget build(BuildContext context) {
+  return Scaffold(
+    body: Stack(
+      children: [
+        // 1. Imagen de fondo con opacidad
+        Container(
+          decoration: BoxDecoration(
+            image: DecorationImage(
+              image: const AssetImage('assets/f2.png'),
+              fit: BoxFit.cover,
+              colorFilter: ColorFilter.mode(
+                Colors.white.withOpacity(0.5),
+                BlendMode.dstATop,
+              ),
+            ),
+          ),
+        ),
+
+        // 2. Contenido de la pantalla
+        SafeArea(
+          child: Column(
+            children: [
+              // Header arriba
+              _buildSimpleHeader('ÁREA DE TUTOR', 'Ingresa tu PIN de seguridad'),
+              
+              // Este Spacer empuja el icono y el PIN al centro
+              const Spacer(), 
+              
+              // Bloque Central: Icono y Campo de PIN
+              Column(
+                children: [
+                  const Icon(Icons.lock_person, size: 80, color: Color(0xFFD6213B)),
+                  const SizedBox(height: 30),
+                  Container(
+                    width: 200,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(30),
+                      boxShadow: const [
+                        BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, 4))
+                      ],
+                    ),
+                    child: TextField(
+                      controller: _pinController,
+                      keyboardType: TextInputType.number,
+                      obscureText: true,
+                      textAlign: TextAlign.center,
+                      maxLength: 4,
+                      style: const TextStyle(
+                        fontSize: 30, 
+                        letterSpacing: 20, 
+                        fontWeight: FontWeight.bold, 
+                        color: Color(0xFFD6213B)
+                      ),
+                      decoration: const InputDecoration(
+                        counterText: "",
+                        border: InputBorder.none,
+                        hintText: "••••",
+                        hintStyle: TextStyle(color: Colors.grey),
+                      ),
                     ),
                   ),
-                ),
-                
-                const SizedBox(height: 40),
-                
-                // Botón Continuar (Estilo Dave's Kingdom)
-                ElevatedButton(
-                  onPressed: () {
-                    if (_pinController.text.length == 4) {
-                      // Redirigir al área de Tutor
-                      Navigator.pushReplacement( // Usamos pushReplacement para que no pueda volver al PIN con el botón de atrás
-                        context,
-                        MaterialPageRoute(builder: (context) => const TutorDashboardScreen()),
-                      );
-                    } else {
-                      // Opcional: Mostrar error si el PIN está incompleto
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Ingresa un PIN de 4 dígitos')),
-                      );
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFFFD54F),
-                    minimumSize: const Size(double.infinity, 60),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                  ),
-                  child: const Text('Continuar', style: TextStyle(fontSize: 22, color: Colors.white)),
-                ),
-                
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Cancelar', style: TextStyle(color: Colors.grey)),
-                )
-              ],
-            ),
-          ),
-          
-          const Spacer(flex: 2),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSimpleHeader(String title, String subtitle) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 50),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.only(bottomLeft: Radius.circular(60), bottomRight: Radius.circular(60)),
-      ),
-      child: Column(
-        children: [
-          Text(title, style: const TextStyle(fontSize: 30, fontWeight: FontWeight.bold, color: Color(0xFFFFD54F))),
-          Text(subtitle, style: const TextStyle(fontSize: 16, color: Colors.grey)),
-        ],
-      ),
-    );
-  }
-}
-
-class TutorDashboardScreen extends StatelessWidget {
-  const TutorDashboardScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
-      body: SafeArea(
-        child: Column(
-          children: [
-            // --- Header de Perfil (Silvia Bieber) ---
-            _buildTutorHeader(),
-
-            const SizedBox(height: 20),
-
-            // --- Título Central ---
-            const Text(
-              'DAVE\'S',
-              style: TextStyle(
-                fontSize: 32,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFFFFD54F),
-                letterSpacing: 2,
-              ),
-            ),
-            const Text(
-              'KINGDOM',
-              style: TextStyle(
-                fontSize: 38,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFFFFD54F),
-                letterSpacing: 2,
-              ),
-            ),
-
-            const SizedBox(height: 30),
-
-            // --- Lista de Opciones ---
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 30),
-                children: [
-                  _buildMenuButton('Administrar usuarios', () {}),
-                  _buildMenuButton('Ver informes y progreso', () {}),
-                  _buildMenuButton('Asignar tareas', () {}),
-                  _buildMenuButton('Establecer recompensas', () {}),
                 ],
               ),
-            ),
 
-            // --- Bottom Navigation Bar ---
-            _buildBottomNav(),
-          ],
-        ),
-      ),
-    );
-  }
+              // Este Spacer empuja los botones al final de la pantalla
+              const Spacer(), 
 
-  // Header con la info de la Tutora
-  Widget _buildTutorHeader() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(40),
-          bottomRight: Radius.circular(40),
-        ),
-      ),
-      child: Row(
-        children: [
-          const CircleAvatar(
-            radius: 38,
-            backgroundColor: Color(0xFFFFD54F),
-            child: CircleAvatar(
-              radius: 34,
-              backgroundColor: Colors.white,
-              child: Icon(Icons.face_retouching_natural, size: 45, color: Colors.purple), 
-              // ^ Aquí iría la imagen de Silvia Bieber
-            ),
-          ),
-          const SizedBox(width: 15),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Silvia Bieber',
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFFFFD54F)),
-                ),
-                Row(
+                            // Bloque Inferior: Botones pegados abajo
+                Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 25.0, vertical: 40.0), // <--- El margen que buscas
+                child: Column(
                   children: [
-                    const Text('Nivel 1', style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold)),
-                    const SizedBox(width: 10),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFFD54F),
-                        borderRadius: BorderRadius.circular(20),
+                    ElevatedButton(
+                      onPressed: () {},
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFD6213B),
+                        minimumSize: const Size(double.infinity, 60), // Ocupa el ancho disponible menos el padding
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                       ),
-                      child: const Text('⭐ 235pts', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                      child: const Text('Continuar', style: TextStyle(color: Colors.white, fontSize: 18)),
+                    ),
+                    const SizedBox(height: 10),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text(
+                        'Cancelar',
+                        style: TextStyle(color: Color(0xFFD6213B), fontWeight: FontWeight.bold),
+                      ),
                     ),
                   ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-          const Icon(Icons.card_giftcard, size: 40, color: Colors.brown), // Icono del cofre
-        ],
-      ),
-    );
-  }
-
-  // Botones del menú
-  Widget _buildMenuButton(String title, VoidCallback onTap) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 15),
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(25),
-          boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4)),
-          ],
         ),
-        child: ListTile(
-          contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 25),
-          title: Text(
-            title,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w500, color: Colors.black87),
-          ),
-          onTap: onTap,
-        ),
-      ),
-    );
-  }
+      ],
+    ),
+  );
+}
 
-  // Menu inferior
-  Widget _buildBottomNav() {
+  // Header modificado con el color rojo especificado
+  Widget _buildSimpleHeader(String title, String subtitle) {
     return Container(
-      margin: const EdgeInsets.all(20),
-      padding: const EdgeInsets.symmetric(vertical: 15),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(40),
-        boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 10)],
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 70),
+      decoration: const BoxDecoration(
+        color: Color(0xFFD6213B),
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(60), 
+          bottomRight: Radius.circular(60)
+        ),
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: const [
-          Icon(Icons.description_outlined, size: 35, color: Colors.orange),
-          Icon(Icons.fort_outlined, size: 35, color: Colors.grey),
-          Icon(Icons.menu_book_outlined, size: 35, color: Colors.redAccent),
+      child: Column(
+        children: [
+          Text(
+            title, 
+            style: const TextStyle(
+              fontSize: 30, 
+              fontWeight: FontWeight.bold, 
+              color: Colors.white,
+               // Rojo RGB 214, 33, 59
+            )
+          ),
+          Text(
+            subtitle, 
+            style: const TextStyle(fontSize: 16, color: Colors.white)
+          ),
         ],
       ),
     );
