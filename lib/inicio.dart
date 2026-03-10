@@ -1,4 +1,8 @@
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 void main() => runApp(const MyApp());
 
@@ -66,7 +70,6 @@ class LandingScreen extends StatelessWidget {
     );
   }
 }
-// --- 2. LOGIN SCREEN (NUEVA) ---
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -76,160 +79,80 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   bool _obscureText = true;
+  bool _isLoading = false; // Para el estado de carga
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      // Quitamos el backgroundColor para que no tape la imagen
-      body: Stack(
-        children: [
-          // 1. Capa del fondo: La imagen que ocupa todo
-           Container(
-            decoration: BoxDecoration(
-              image: DecorationImage(
-                image: const AssetImage('assets/f2.png'),
-                fit: BoxFit.cover,
-                colorFilter: ColorFilter.mode(
-                  Colors.white.withOpacity(0.5),
-                  BlendMode.dstATop,
-                ),
+  // CONTROLADORES: Capturan el texto de los inputs
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+
+  // FUNCIÓN PARA CONECTAR A LARAGON
+  Future<void> _loginConLaragon() async {
+    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
+      _mostrarMensaje("Por favor, llena todos los campos");
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      // Si usas Chrome en Laragon:
+      // USA TU IP REAL EN LUGAR DE LOCALHOST
+      var url = Uri.parse('http://192.168.0.167/api_hk/login.php');
+
+      var response = await http.post(url, body: {
+        'email': _emailController.text.trim(),
+        'password': _passwordController.text.trim(),
+      });
+
+      if (response.statusCode == 200) {
+        var data = json.decode(response.body);
+        // Esto va dentro de tu lógica de Login exitoso
+        if (data['status'] == 'success') {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => PinSecurityScreen(
+                usuarioId: data['id'].toString(), // Pasamos el ID que devolvió el login.php
               ),
             ),
-          ),
-
-          
-          // 2. Capa del contenido: El formulario con scroll
-          SafeArea(
-  child: Column(
-    children: [
-      // 1. El Header se queda fijo arriba
-      _buildHeader(), 
-
-      // 2. El contenido central (Inputs) con Scroll
-Expanded(
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 50),
-            child: Column(
-              children: [
-                const SizedBox(height: 50),
-                const Text(
-                  '¡HOLA!',
-                  style: TextStyle(
-                    fontSize: 28, 
-                    fontWeight: FontWeight.bold, 
-                    color: Color(0xFFD6213B)
-                  ),
-                ),
-                const Text('Inicia sesión para continuar', style: TextStyle(color: Color(0xFFD6213B),fontSize: 18, )),
-                const SizedBox(height: 40),
-                _inputField('Usuario', Icons.person_outline),
-                const SizedBox(height: 20),
-                _inputField('Contraseña', Icons.lock_outline, isPass: true),
-                const SizedBox(height: 20), 
-                
-                // --- NUEVO CÓDIGO: Enlace a la pantalla de registro ---
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Text(
-                      '¿No tienes cuenta? ',
-                      style: TextStyle(color: Color(0xFFD6213B), fontSize: 15),
-                    ),
-                    GestureDetector(
-                      onTap: () {
-                        // Navegación hacia la pantalla de registro
-                        Navigator.push(
-                          context, 
-                          MaterialPageRoute(builder: (context) => const RegisterScreen())
-                        );
-                      },
-                      child: const Text(
-                        'Regístrate',
-                        style: TextStyle(
-                          color: Color(0xFFD6213B),
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                          decoration: TextDecoration.underline, // Subrayado para indicar que es un enlace
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20), // Espacio extra para respirar
-                // --------------------------------------------------------
-              ],
-            ),
+          );
+        }
+        if (data['status'] == 'success') {
+          if (mounted) {
+            Navigator.pushReplacement(
+              context,
+              // 1. Quita el 'const'
+        // 2. Pasa el usuarioId (asumiendo que 'data' es la respuesta de tu login.php)
+        MaterialPageRoute(
+          builder: (context) => RoleSelectionScreen(
+            usuarioId: data['id'].toString(), 
           ),
         ),
-      ),
+                    );
+                  }
+                } else {
+                  _mostrarMensaje(data['message']);
+                }
+              }
+            } catch (e) {
+              _mostrarMensaje("Error de conexión con Laragon");
+            } finally {
+              if (mounted) setState(() => _isLoading = false);
+            }
+          }
 
-      // 3. El botón se queda FIJO ABAJO con su margen
-      Padding(
-        padding: const EdgeInsets.fromLTRB(25, 10, 25, 30), // (Izquierda, Arriba, Derecha, Abajo)
-        child: _buildMainButton(
-          context, 
-          'ENTRAR', 
-          () => Navigator.push(
-            context, 
-            MaterialPageRoute(builder: (context) => const RoleSelectionScreen())
-          ),
-        ),
-      ),
-    ],
-  ),
-)
-        ], // Cierre de children del Stack
-      ), // Cierre del Stack
+  void _mostrarMensaje(String mensaje) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(mensaje), backgroundColor: const Color(0xFFD6213B)),
     );
   }
-
-  // Tu función _inputField está muy bien, solo asegúrate de que esté dentro de la clase
-  Widget _inputField(String hint, IconData icon, {bool isPass = false}) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.9), // Tip: un toque de transparencia queda genial
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: const [
-          BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, 4))
-        ],
-      ),
-      child: TextField(
-        obscureText: isPass ? _obscureText : false,
-        decoration: InputDecoration(
-          hintText: hint,
-          prefixIcon: Icon(icon, color: Color(0xFFD6213B)),
-          border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(vertical: 20, horizontal: 50),
-          suffixIcon: isPass ? IconButton(
-            icon: Icon(_obscureText ? Icons.visibility_off : Icons.visibility),
-            onPressed: () => setState(() => _obscureText = !_obscureText),
-          ) : null,
-        ),
-      ),
-    );
-  }
-}
-
-class RegisterScreen extends StatefulWidget {
-  const RegisterScreen({super.key});
-
-  @override
-  State<RegisterScreen> createState() => _RegisterScreenState();
-}
-
-class _RegisterScreenState extends State<RegisterScreen> {
-  // Variables independientes para mostrar/ocultar contraseñas y pines
-  bool _obscurePassword = true;
-  bool _obscureConfirmPassword = true;
-  bool _obscurePin = true; 
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Stack(
         children: [
-          // 1. Capa del fondo: La imagen que ocupa todo
+          // 1. Capa del fondo
           Container(
             decoration: BoxDecoration(
               image: DecorationImage(
@@ -242,302 +165,96 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
             ),
           ),
-
-          // 2. Capa del contenido: El formulario con scroll
+          
+          // 2. Contenido
           SafeArea(
             child: Column(
               children: [
-                // 1. El Header fijo arriba 
-                _buildHeader(), 
-
-                // 2. El contenido central (Inputs) con Scroll
+                _buildHeader(), // Asegúrate de tener esta función definida abajo
                 Expanded(
                   child: SingleChildScrollView(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 50),
                       child: Column(
                         children: [
+                          const SizedBox(height: 50),
+                          const Text('¡HOLA!', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Color(0xFFD6213B))),
+                          const Text('Inicia sesión para continuar', style: TextStyle(color: Color(0xFFD6213B), fontSize: 18)),
+                          const SizedBox(height: 40),
+                          
+                          // Pasamos los controladores a los campos
+                          _inputField('Usuario', Icons.person_outline, controller: _emailController),
                           const SizedBox(height: 20),
-                          const Text(
-                            '¡ÚNETE!',
-                            style: TextStyle(
-                              fontSize: 28, 
-                              fontWeight: FontWeight.bold, 
-                              color: Color(0xFFD6213B)
-                            ),
-                          ),
-                          const Text(
-                            'Crea tu cuenta para empezar', 
-                            style: TextStyle(
-                              color: Color(0xFFD6213B),
-                              fontSize: 18, 
-                            ),
-                          ),
-                          const SizedBox(height: 25),
-
-                          // --- 2 FOTOS DE PERFIL (Tutor y Niño) ---
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                            children: [
-                              _buildProfilePicPicker('Tutor', Icons.person),
-                              _buildProfilePicPicker('Niño', Icons.child_care),
-                            ],
-                          ),
-                          const SizedBox(height: 25),
+                          _inputField('Contraseña', Icons.lock_outline, isPass: true, controller: _passwordController),
                           
-                          // --- CAMPOS DE REGISTRO ---
-                          _inputField(
-                            hint: 'Nombre del Tutor', 
-                            icon: Icons.person_outline,
-                          ),
-                          const SizedBox(height: 15),
-
-                          _inputField(
-                            hint: 'Nombre del Niño', 
-                            icon: Icons.child_care, 
-                          ),
-                          const SizedBox(height: 15),
-                          
-                          _inputField(
-                            hint: 'Correo Electrónico', 
-                            icon: Icons.email_outlined,
-                            keyboardType: TextInputType.emailAddress, 
-                          ),
-                          const SizedBox(height: 15),
-
-                          _inputField(
-                            hint: 'PIN del Tutor (4 dígitos)', 
-                            icon: Icons.dialpad, 
-                            isPass: true,
-                            obscureValue: _obscurePin,
-                            keyboardType: TextInputType.number, 
-                            onToggleVisibility: () {
-                              setState(() => _obscurePin = !_obscurePin);
-                            }
-                          ),
-                          const SizedBox(height: 15),
-                          
-                          _inputField(
-                            hint: 'Contraseña', 
-                            icon: Icons.lock_outline, 
-                            isPass: true,
-                            obscureValue: _obscurePassword,
-                            onToggleVisibility: () {
-                              setState(() => _obscurePassword = !_obscurePassword);
-                            }
-                          ),
-                          const SizedBox(height: 15),
-
-                          _inputField(
-                            hint: 'Confirmar Contraseña', 
-                            icon: Icons.lock_outline, 
-                            isPass: true,
-                            obscureValue: _obscureConfirmPassword,
-                            onToggleVisibility: () {
-                              setState(() => _obscureConfirmPassword = !_obscureConfirmPassword);
-                            }
-                          ),
-                          const SizedBox(height: 20), 
+                          const SizedBox(height: 20),
+                          _buildRegisterLink(),
                         ],
                       ),
                     ),
                   ),
                 ),
 
-                // 3. Botón principal y Texto de redirección al Login
+                // 3. Botón FIJO ABAJO
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(25, 10, 25, 30), 
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min, // Ajusta la columna al tamaño de sus hijos
-                    children: [
-                      // Botón principal ocupa todo el ancho
-                      ElevatedButton(
-                        onPressed: () {
-                          // Aquí iría la lógica para registrar todo
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFD6213B), 
-                          minimumSize: const Size(double.infinity, 60),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(30)
-                          ),
-                          elevation: 5,
-                        ),
-                        child: const Text(
-                          'REGISTRARSE', 
-                          style: TextStyle(
-                            fontSize: 22, 
-                            fontWeight: FontWeight.bold, 
-                            color: Colors.white
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 15),
-                      // --- NUEVO TEXTO: ¿Ya tienes cuenta? ---
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Text(
-                            '¿Ya tienes una cuenta? ',
-                            style: TextStyle(color: Color(0xFFD6213B), fontSize: 15),
-                          ),
-                          GestureDetector(
-                            onTap: () {
-                              // Esto cierra la pantalla de Registro y vuelve al Login
-                              Navigator.pop(context);
-                            },
-                            child: const Text(
-                              'Inicia sesión',
-                              style: TextStyle(
-                                color: Color(0xFFD6213B),
-                                fontSize: 15,
-                                fontWeight: FontWeight.bold,
-                                decoration: TextDecoration.underline, // Subrayado interactivo
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
+                  padding: const EdgeInsets.fromLTRB(25, 10, 25, 30),
+                  child: _isLoading 
+                    ? const CircularProgressIndicator(color: Color(0xFFD6213B)) 
+                    : _buildMainButton(context, 'ENTRAR', _loginConLaragon),
                 ),
               ],
             ),
-          )
-        ], 
-      ), 
-    );
-  }
-
-  // --- WIDGET PARA SELECCIONAR FOTO DE PERFIL ---
-  Widget _buildProfilePicPicker(String label, IconData defaultIcon) {
-    return Column(
-      children: [
-        GestureDetector(
-          onTap: () {
-            print("Seleccionar imagen de perfil para $label");
-          },
-          child: Stack(
-            alignment: Alignment.bottomRight,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(4), 
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.8),
-                  shape: BoxShape.circle,
-                  boxShadow: const [
-                    BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, 4))
-                  ],
-                ),
-                child: CircleAvatar(
-                  radius: 40, 
-                  backgroundColor: Colors.white,
-                  child: Icon(defaultIcon, size: 45, color: Colors.grey),
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.all(6),
-                decoration: const BoxDecoration(
-                  color: Color(0xFFD6213B),
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2))
-                  ],
-                ),
-                child: const Icon(
-                  Icons.camera_alt, 
-                  color: Colors.white, 
-                  size: 16,
-                ),
-              ),
-            ],
           ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          label,
-          style: const TextStyle(
-            color: Color(0xFFD6213B),
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-          ),
-        ),
-      ],
-    );
-  }
-
-  // --- WIDGET INPUT FIELD A PRUEBA DE ERRORES (NULL-SAFE) ---
-  Widget _inputField({
-    required String hint, 
-    required IconData icon, 
-    bool? isPass,          
-    bool? obscureValue,    
-    TextInputType? keyboardType, 
-    VoidCallback? onToggleVisibility,
-  }) {
-    final bool isPassword = isPass ?? false;
-    final bool hideText = obscureValue ?? false;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.9), 
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: const [
-          BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, 4))
         ],
       ),
+    );
+  }
+
+  // --- WIDGETS DE APOYO ACTUALIZADOS ---
+
+  Widget _inputField(String hint, IconData icon, {bool isPass = false, required TextEditingController controller}) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.9),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, 4))],
+      ),
       child: TextField(
-        obscureText: isPassword ? hideText : false,
-        keyboardType: keyboardType ?? TextInputType.text, 
+        controller: controller, // Vinculamos el controlador
+        obscureText: isPass ? _obscureText : false,
         decoration: InputDecoration(
           hintText: hint,
           prefixIcon: Icon(icon, color: const Color(0xFFD6213B)),
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
-          suffixIcon: isPassword 
-            ? IconButton(
-                icon: Icon(
-                  hideText ? Icons.visibility_off : Icons.visibility,
-                  color: Colors.grey,
-                ),
-                onPressed: onToggleVisibility,
-              ) 
-            : null,
+          suffixIcon: isPass ? IconButton(
+            icon: Icon(_obscureText ? Icons.visibility_off : Icons.visibility),
+            onPressed: () => setState(() => _obscureText = !_obscureText),
+          ) : null,
         ),
       ),
     );
   }
 
-  // Tu Header reutilizable
-  Widget _buildHeader() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
-      decoration: const BoxDecoration(
-        color: Color(0xFFD6213B),
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(60),
-          bottomRight: Radius.circular(60),
+  Widget _buildRegisterLink() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const Text('¿No tienes cuenta? ', style: TextStyle(color: Color(0xFFD6213B), fontSize: 15)),
+        GestureDetector(
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const RegisterScreen())),
+          child: const Text('Regístrate', style: TextStyle(color: Color(0xFFD6213B), fontSize: 15, fontWeight: FontWeight.bold, decoration: TextDecoration.underline)),
         ),
-      ),
-      child: Column(
-        children: [
-          const SizedBox(height: 10),
-          Image.asset(
-            'assets/titulo.png',
-            height: 60,
-            fit: BoxFit.contain,
-          ),
-          const SizedBox(height: 5),
-        ],
-      ),
+      ],
     );
   }
 }
 
 // --- 3. ROLE SELECTION SCREEN ---
 class RoleSelectionScreen extends StatefulWidget {
-  const RoleSelectionScreen({super.key});
+  final String usuarioId; // <--- Agrega esto
+
+  const RoleSelectionScreen({super.key, required this.usuarioId}); // <--- Actualiza el constructor
 
   @override
   State<RoleSelectionScreen> createState() => _RoleSelectionScreenState();
@@ -600,15 +317,21 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 25.0, vertical: 40.0),
                   child: ElevatedButton(
                     onPressed: selectedRole.isEmpty 
-                      ? null 
-                      : () {
-                          if (selectedRole == 'tutor') {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (context) => const PinSecurityScreen()),
-                            );
-                          }
-                        },
+                    ? null 
+                    : () {
+                        if (selectedRole == 'tutor') {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => PinSecurityScreen(
+                                usuarioId: widget.usuarioId, // <--- CAMBIO AQUÍ: Usamos el ID que recibió la pantalla
+                              ),
+                            ),
+                          );
+                        } else {
+                          // Lógica para el rol de niño si es necesario
+                        }
+                      },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFD6213B),
                       disabledBackgroundColor: Colors.grey.shade400,
@@ -723,15 +446,60 @@ Widget _buildMainButton(BuildContext context, String text, VoidCallback? onPress
   );
 }
 
+
 class PinSecurityScreen extends StatefulWidget {
-  const PinSecurityScreen({super.key});
+  final String usuarioId; // <-- Agregamos esto
+
+  const PinSecurityScreen({super.key, required this.usuarioId}); // Constructor actualizado
 
   @override
   State<PinSecurityScreen> createState() => _PinSecurityScreenState();
 }
-
 class _PinSecurityScreenState extends State<PinSecurityScreen> {
   final TextEditingController _pinController = TextEditingController();
+  bool _isLoading = false;
+
+Future<void> _verifyPin() async {
+  if (_pinController.text.length < 4) return;
+
+  setState(() => _isLoading = true);
+
+  try {
+    final response = await http.post(
+      Uri.parse('http://192.168.0.167/api_hk/verify_pin.php'),
+      body: {
+        'id_usuario': widget.usuarioId, // <-- USA EL ID REAL QUE VIENE DEL LOGIN
+        'pin': _pinController.text,
+      },
+    );
+
+    final data = jsonDecode(response.body);
+
+    if (data['status'] == 'success') {
+      if (!mounted) return;
+      
+      // Navegamos al Dashboard pasando el nombre que nos dio el PHP
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => TutorDashboardScreen(
+            nombreTutor: data['nombre_tutor'], 
+          ),
+        ),
+      );
+    } else {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('PIN Incorrecto'), backgroundColor: Colors.red),
+      );
+      _pinController.clear();
+    }
+  } catch (e) {
+    print("Error de conexión: $e");
+  } finally {
+    if (mounted) setState(() => _isLoading = false);
+  }
+}
 
   @override
 Widget build(BuildContext context) {
@@ -808,29 +576,36 @@ Widget build(BuildContext context) {
                 child: Column(
                   children: [
                     ElevatedButton(
-                      // --- MAGIA AÑADIDA AQUÍ ---
-                      onPressed: () {
-                        // Navegamos al Dashboard del Tutor y evitamos que vuelva atrás con el botón del celular
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const TutorDashboardScreen(),
-                          ),
-                        );
-                      },
+                      onPressed: _isLoading ? null : _verifyPin,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFD6213B),
-                        minimumSize: const Size(double.infinity, 60), 
+                        minimumSize: const Size(double.infinity, 60),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                       ),
-                      child: const Text('Continuar', style: TextStyle(color: Colors.white, fontSize: 18)),
+                      child: _isLoading 
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                          )
+                        : const Text(
+                            'Continuar', 
+                            style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)
+                          ),
                     ),
-                    const SizedBox(height: 10),
+
+                    const SizedBox(height: 10), // Espacio entre botones
+
+                    // 2. EL BOTÓN DE CANCELAR (TextButton para que sea secundario)
                     TextButton(
                       onPressed: () => Navigator.pop(context),
                       child: const Text(
                         'Cancelar',
-                        style: TextStyle(color: Color(0xFFD6213B), fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          color: Color(0xFFD6213B), 
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
                       ),
                     ),
                   ],
@@ -877,20 +652,14 @@ Widget build(BuildContext context) {
   }
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
 class TutorDashboardScreen extends StatelessWidget {
-  const TutorDashboardScreen({super.key});
+  final String nombreTutor; // <-- Agregamos esta variable
+
+  const TutorDashboardScreen({
+    super.key, 
+    this.nombreTutor = 'Tutor' // Valor por defecto por si acaso
+  });
+  
 
   @override
   Widget build(BuildContext context) {
@@ -920,22 +689,30 @@ class TutorDashboardScreen extends StatelessWidget {
                 _buildMenuButton(
                   title: 'Asignar nuevas tareas',
                   icon: Icons.add_task,
-                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const AssignTaskScreen())),
+                  onTap: () {
+                    // Navegar a la pantalla de crear tarea
+                  },
                 ),
                 _buildMenuButton(
                   title: 'Validar tareas completadas',
                   icon: Icons.check_circle_outline,
-                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ValidateTasksScreen())),
+                  onTap: () {
+                    // Navegar a la pantalla de validación
+                  },
                 ),
                 _buildMenuButton(
                   title: 'Ver informes y progreso',
                   icon: Icons.bar_chart_rounded,
-                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ReportsScreen())),
+                  onTap: () {
+                    // Navegar a los reportes
+                  },
                 ),
                 _buildMenuButton(
                   title: 'Establecer recompensas',
                   icon: Icons.card_giftcard_rounded,
-                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const RewardsScreen())),
+                  onTap: () {
+                    // Navegar a la configuración de premios
+                  },
                 ),
               ],
             ),
@@ -1006,7 +783,8 @@ class TutorDashboardScreen extends StatelessWidget {
                             BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))
                           ]
                         ),
-                        child: const Text(
+                        
+                          child: const Text(
                           'Tutor',
                           style: TextStyle(
                             fontSize: 12,
@@ -1014,6 +792,8 @@ class TutorDashboardScreen extends StatelessWidget {
                             color: Colors.white,
                             letterSpacing: 0.5,
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ),
@@ -1026,17 +806,18 @@ class TutorDashboardScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Mamá / Papá', 
-                        style: TextStyle(
-                          fontSize: 22, // Un poco más grande
-                          fontWeight: FontWeight.w900,
-                          color: Colors.white,
-                          letterSpacing: 0.5,
+                      Text(
+                          nombreTutor, // <-- Usamos la variable aquí
+                          style: const TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w900,
+                            color: Colors.white,
+                            letterSpacing: 0.5,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis, // Por si el nombre es muy largo
-                      ),
+                        
                       const SizedBox(height: 8),
                       Row(
                         children: [
@@ -1159,7 +940,7 @@ class TutorDashboardScreen extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 70),
       decoration: const BoxDecoration(
-        color:  const Color(0xFFD6213B),
+        color:  Color(0xFFD6213B),
         borderRadius: BorderRadius.only(
           topLeft: Radius.circular(40),
           topRight: Radius.circular(40),
@@ -1200,6 +981,427 @@ Widget _navItem(IconData icon, bool isActive) {
     );
   }
 }
+
+
+
+
+
+
+
+
+
+
+
+class RegisterScreen extends StatefulWidget {
+  const RegisterScreen({super.key});
+
+  @override
+  State<RegisterScreen> createState() => _RegisterScreenState();
+}
+
+class _RegisterScreenState extends State<RegisterScreen> {
+  // --- CONTROLADORES PARA LOS INPUTS ---
+  final TextEditingController _tutorNameCtrl = TextEditingController();
+  final TextEditingController _childNameCtrl = TextEditingController();
+  final TextEditingController _emailCtrl = TextEditingController();
+  final TextEditingController _pinCtrl = TextEditingController();
+  final TextEditingController _passwordCtrl = TextEditingController();
+  final TextEditingController _confirmPassCtrl = TextEditingController();
+
+  // --- VARIABLES PARA CONTRASEÑAS ---
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
+  bool _obscurePin = true;
+
+  // --- VARIABLES PARA LAS IMÁGENES ---
+  File? _tutorImage;
+  File? _childImage;
+
+  // --- FUNCIÓN PARA SELECCIONAR FOTO ---
+  Future<void> _pickImage(bool isTutor) async {
+    final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
+    if (pickedFile != null) {
+      setState(() {
+        if (isTutor) {
+          _tutorImage = File(pickedFile.path);
+        } else {
+          _childImage = File(pickedFile.path);
+        }
+      });
+    }
+  }
+
+  // --- FUNCIÓN PARA ENVIAR DATOS AL BACKEND ---
+  // --- FUNCIÓN PARA ENVIAR DATOS AL BACKEND CORREGIDA ---
+  Future<void> _registerUser() async {
+  // 1. Validaciones básicas
+  if (_passwordCtrl.text != _confirmPassCtrl.text) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Las contraseñas no coinciden'), 
+        backgroundColor: Color(0xFFD6213B),
+      ),
+    );
+    return;
+  }
+
+  // 2. Usaremos un POST normal para asegurar la recepción de datos
+  // IMPORTANTE: Asegúrate de que la IP de tu PC siga siendo 192.168.0.167
+  var url = Uri.parse('http://192.168.0.167/api_hk/register.php');
+
+  try {
+    // Si NO vas a enviar fotos por ahora, usa este formato:
+    var response = await http.post(
+      url,
+      body: {
+        'nombre_tutor': _tutorNameCtrl.text.trim(),
+        'nombre_nino': _childNameCtrl.text.trim(),
+        'email': _emailCtrl.text.trim(),
+        'pin': _pinCtrl.text.trim(),
+        'password': _passwordCtrl.text,
+      },
+    );
+
+    print("Respuesta del servidor: ${response.body}");
+
+    if (response.statusCode == 200) {
+      // Intentar decodificar la respuesta del PHP
+      final result = jsonDecode(response.body);
+      
+      if (result['status'] == 'success') {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('¡Registro exitoso!'), backgroundColor: Colors.green),
+        );
+        Navigator.pop(context);
+      } else {
+        // Aquí verás el error detallado que enviamos desde el PHP
+        print("Error del PHP: ${result['message']}");
+      }
+    } else {
+      print('Error en el servidor HTTP: ${response.statusCode}');
+    }
+  } catch (e) {
+    print('Error de conexión: $e');
+  }
+}
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Stack(
+        children: [
+          // 1. Capa del fondo
+          Container(
+            decoration: BoxDecoration(
+              image: DecorationImage(
+                image: const AssetImage('assets/f2.png'),
+                fit: BoxFit.cover,
+                colorFilter: ColorFilter.mode(
+                  Colors.white.withOpacity(0.5),
+                  BlendMode.dstATop,
+                ),
+              ),
+            ),
+          ),
+
+          // 2. Capa del contenido
+          SafeArea(
+            child: Column(
+              children: [
+                _buildHeader(),
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 50),
+                      child: Column(
+                        children: [
+                          const SizedBox(height: 20),
+                          const Text(
+                            '¡ÚNETE!',
+                            style: TextStyle(
+                                fontSize: 28,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFFD6213B)),
+                          ),
+                          const Text(
+                            'Crea tu cuenta para empezar',
+                            style: TextStyle(
+                              color: Color(0xFFD6213B),
+                              fontSize: 18,
+                            ),
+                          ),
+                          const SizedBox(height: 25),
+
+                          // --- 2 FOTOS DE PERFIL ---
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              _buildProfilePicPicker('Tutor', Icons.person, true),
+                              _buildProfilePicPicker('Niño', Icons.child_care, false),
+                            ],
+                          ),
+                          const SizedBox(height: 25),
+
+                          // --- CAMPOS DE REGISTRO ---
+                          _inputField(
+                            hint: 'Nombre del Tutor',
+                            icon: Icons.person_outline,
+                            controller: _tutorNameCtrl,
+                          ),
+                          const SizedBox(height: 15),
+
+                          _inputField(
+                            hint: 'Nombre del Niño',
+                            icon: Icons.child_care,
+                            controller: _childNameCtrl,
+                          ),
+                          const SizedBox(height: 15),
+
+                          _inputField(
+                            hint: 'Correo Electrónico',
+                            icon: Icons.email_outlined,
+                            keyboardType: TextInputType.emailAddress,
+                            controller: _emailCtrl,
+                          ),
+                          const SizedBox(height: 15),
+
+                          _inputField(
+                            hint: 'PIN del Tutor (4 dígitos)',
+                            icon: Icons.dialpad,
+                            isPass: true,
+                            obscureValue: _obscurePin,
+                            keyboardType: TextInputType.number,
+                            controller: _pinCtrl,
+                            onToggleVisibility: () {
+                              setState(() => _obscurePin = !_obscurePin);
+                            },
+                          ),
+                          const SizedBox(height: 15),
+
+                          _inputField(
+                            hint: 'Contraseña',
+                            icon: Icons.lock_outline,
+                            isPass: true,
+                            obscureValue: _obscurePassword,
+                            controller: _passwordCtrl,
+                            onToggleVisibility: () {
+                              setState(() => _obscurePassword = !_obscurePassword);
+                            },
+                          ),
+                          const SizedBox(height: 15),
+
+                          _inputField(
+                            hint: 'Confirmar Contraseña',
+                            icon: Icons.lock_outline,
+                            isPass: true,
+                            obscureValue: _obscureConfirmPassword,
+                            controller: _confirmPassCtrl,
+                            onToggleVisibility: () {
+                              setState(() => _obscureConfirmPassword = !_obscureConfirmPassword);
+                            },
+                          ),
+                          const SizedBox(height: 20),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+
+                // 3. Botón principal
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(25, 10, 25, 30),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      ElevatedButton(
+                        onPressed: _registerUser, // <--- LLAMA A LA FUNCIÓN AQUÍ
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFD6213B),
+                          minimumSize: const Size(double.infinity, 60),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(30)),
+                          elevation: 5,
+                        ),
+                        child: const Text(
+                          'REGISTRARSE',
+                          style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white),
+                        ),
+                      ),
+                      const SizedBox(height: 15),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Text(
+                            '¿Ya tienes una cuenta? ',
+                            style: TextStyle(color: Color(0xFFD6213B), fontSize: 15),
+                          ),
+                          GestureDetector(
+                            onTap: () => Navigator.pop(context),
+                            child: const Text(
+                              'Inicia sesión',
+                              style: TextStyle(
+                                color: Color(0xFFD6213B),
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                                decoration: TextDecoration.underline,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          )
+        ],
+      ),
+    );
+  }
+
+  // --- WIDGET ACTUALIZADO PARA SELECCIONAR FOTO ---
+  Widget _buildProfilePicPicker(String label, IconData defaultIcon, bool isTutor) {
+    // Determina qué archivo mostrar dependiendo si es tutor o niño
+    File? currentImage = isTutor ? _tutorImage : _childImage;
+
+    return Column(
+      children: [
+        GestureDetector(
+          onTap: () => _pickImage(isTutor),
+          child: Stack(
+            alignment: Alignment.bottomRight,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.8),
+                  shape: BoxShape.circle,
+                  boxShadow: const [
+                    BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, 4))
+                  ],
+                ),
+                child: CircleAvatar(
+                  radius: 40,
+                  backgroundColor: Colors.white,
+                  // Muestra la imagen si existe, o el ícono por defecto
+                  backgroundImage: currentImage != null ? FileImage(currentImage) : null,
+                  child: currentImage == null
+                      ? Icon(defaultIcon, size: 45, color: Colors.grey)
+                      : null,
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFD6213B),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2))
+                  ],
+                ),
+                child: const Icon(Icons.camera_alt, color: Colors.white, size: 16),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          label,
+          style: const TextStyle(
+            color: Color(0xFFD6213B),
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+          ),
+        ),
+      ],
+    );
+  }
+
+  // --- WIDGET INPUT FIELD ACTUALIZADO CON CONTROLADOR ---
+  Widget _inputField({
+    required String hint,
+    required IconData icon,
+    TextEditingController? controller, // <--- SE AGREGA ESTO
+    bool? isPass,
+    bool? obscureValue,
+    TextInputType? keyboardType,
+    VoidCallback? onToggleVisibility,
+  }) {
+    final bool isPassword = isPass ?? false;
+    final bool hideText = obscureValue ?? false;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.9),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: const [
+          BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, 4))
+        ],
+      ),
+      child: TextField(
+        controller: controller, // <--- SE ASIGNA AQUÍ
+        obscureText: isPassword ? hideText : false,
+        keyboardType: keyboardType ?? TextInputType.text,
+        decoration: InputDecoration(
+          hintText: hint,
+          prefixIcon: Icon(icon, color: const Color(0xFFD6213B)),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
+          suffixIcon: isPassword
+              ? IconButton(
+                  icon: Icon(
+                    hideText ? Icons.visibility_off : Icons.visibility,
+                    color: Colors.grey,
+                  ),
+                  onPressed: onToggleVisibility,
+                )
+              : null,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
+      decoration: const BoxDecoration(
+        color: Color(0xFFD6213B),
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(60),
+          bottomRight: Radius.circular(60),
+        ),
+      ),
+      child: Column(
+        children: [
+          const SizedBox(height: 10),
+          Image.asset('assets/titulo.png', height: 60, fit: BoxFit.contain),
+          const SizedBox(height: 5),
+        ],
+      ),
+    );
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1281,10 +1483,7 @@ class AccountSettingsScreen extends StatelessWidget {
                   subtitle: 'Modifica tu nombre, correo o avatar',
                   icon: Icons.edit_rounded,
                   onTap: () {
-                    Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const EditProfileScreen()),
-                    );
+                    // Aquí iría la lógica o navegación para editar
                   },
                 ),
                 
@@ -1294,10 +1493,7 @@ class AccountSettingsScreen extends StatelessWidget {
                   subtitle: 'Cambia tu PIN de seguridad',
                   icon: Icons.lock_rounded,
                   onTap: () {
-                    Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const PrivacySecurityScreen()),
-                  );
+                    // Navegar a cambiar PIN
                   },
                 ),
 
@@ -1383,6 +1579,7 @@ class AccountSettingsScreen extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(25),
+          border: Border.all(color: Colors.red.shade200, width: 2), // Borde rojo tenue para indicar advertencia
           boxShadow: const [
             BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, 4))
           ],
@@ -1499,815 +1696,4 @@ class AccountSettingsScreen extends StatelessWidget {
       ),
     );
   }
-}
-
-// --- PANTALLA PARA MODIFICAR DATOS DE LA CUENTA ---
-class EditProfileScreen extends StatefulWidget {
-  const EditProfileScreen({super.key});
-
-  @override
-  State<EditProfileScreen> createState() => _EditProfileScreenState();
-}
-
-class _EditProfileScreenState extends State<EditProfileScreen> {
-  // Variables para controlar la visibilidad
-  bool _obscurePassword = true;
-  bool _obscurePin = true;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Stack(
-        children: [
-          // 1. Capa del fondo (Consistente con Login/Register)
-          Container(
-            decoration: BoxDecoration(
-              image: DecorationImage(
-                image: const AssetImage('assets/f2.png'),
-                fit: BoxFit.cover,
-                colorFilter: ColorFilter.mode(
-                  Colors.white.withOpacity(0.5),
-                  BlendMode.dstATop,
-                ),
-              ),
-            ),
-          ),
-
-          // 2. Contenido de edición
-          SafeArea(
-            child: Column(
-              children: [
-                _buildHeaderLocal(), 
-
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 50),
-                      child: Column(
-                        children: [
-                          const SizedBox(height: 20),
-                          const Text(
-                            'EDITAR PERFIL',
-                            style: TextStyle(
-                              fontSize: 28, 
-                              fontWeight: FontWeight.bold, 
-                              color: Color(0xFFD6213B)
-                            ),
-                          ),
-                          const Text(
-                            'Actualiza la información de tu cuenta', 
-                            style: TextStyle(color: Color(0xFFD6213B), fontSize: 16),
-                          ),
-                          const SizedBox(height: 25),
-
-                          // --- FOTOS DE PERFIL (Para actualizar) ---
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                            children: [
-                              _buildProfilePicPickerLocal('Tutor', Icons.person),
-                              _buildProfilePicPickerLocal('Niño', Icons.child_care),
-                            ],
-                          ),
-                          const SizedBox(height: 25),
-                          
-                          // --- CAMPOS DE EDICIÓN ---
-                          _inputFieldLocal(
-                            hint: 'Nombre del Tutor', 
-                            icon: Icons.person_outline,
-                          ),
-                          const SizedBox(height: 15),
-
-                          _inputFieldLocal(
-                            hint: 'Nombre del Niño', 
-                            icon: Icons.child_care, 
-                          ),
-                          const SizedBox(height: 15),
-                          
-                          _inputFieldLocal(
-                            hint: 'Correo Electrónico', 
-                            icon: Icons.email_outlined,
-                            keyboardType: TextInputType.emailAddress, 
-                          ),
-                          const SizedBox(height: 15),
-
-                          _inputFieldLocal(
-                            hint: 'Nuevo PIN de Seguridad', 
-                            icon: Icons.dialpad, 
-                            isPass: true,
-                            obscureValue: _obscurePin,
-                            keyboardType: TextInputType.number, 
-                            onToggleVisibility: () {
-                              setState(() => _obscurePin = !_obscurePin);
-                            }
-                          ),
-                          const SizedBox(height: 15),
-                          
-                          _inputFieldLocal(
-                            hint: 'Nueva Contraseña', 
-                            icon: Icons.lock_outline, 
-                            isPass: true,
-                            obscureValue: _obscurePassword,
-                            onToggleVisibility: () {
-                              setState(() => _obscurePassword = !_obscurePassword);
-                            }
-                          ),
-                          const SizedBox(height: 30), 
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-
-                // 3. Botones de Guardar / Cancelar
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(25, 10, 25, 30), 
-                  child: Column(
-                    children: [
-                      ElevatedButton(
-                        onPressed: () {
-                          // Aquí iría la lógica para guardar cambios en el backend
-                          Navigator.pop(context);
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFD6213B), 
-                          minimumSize: const Size(double.infinity, 60),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                          elevation: 5,
-                        ),
-                        child: const Text(
-                          'GUARDAR CAMBIOS', 
-                          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
-                        ),
-                      ),
-                      const SizedBox(height: 15),
-                      TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text(
-                          'Cancelar y volver',
-                          style: TextStyle(
-                            color: Color(0xFFD6213B), 
-                            fontSize: 16, 
-                            fontWeight: FontWeight.bold,
-                            decoration: TextDecoration.underline
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          )
-        ], 
-      ), 
-    );
-  }
-
-  // --- MÉTODOS DE SOPORTE ---
-
-  Widget _buildHeaderLocal() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
-      decoration: const BoxDecoration(
-        color: Color(0xFFD6213B),
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(50),
-          bottomRight: Radius.circular(50),
-        ),
-      ),
-      child: Column(
-        children: [
-          const SizedBox(height: 10),
-          Image.asset('assets/titulo.png', height: 60, fit: BoxFit.contain),
-        ],
-      ),
-    );
-  }
-
-Widget _buildProfilePicPickerLocal(String label, IconData defaultIcon) {
-  return Column(
-    children: [
-      Stack(
-        alignment: Alignment.bottomRight,
-        children: [
-          // Este Container es el que genera la sombra
-          Container(
-            padding: const EdgeInsets.all(4), // Espacio para el borde blanco
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.9),
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.2), // Color de la sombra
-                  blurRadius: 10,                       // Qué tan difuminada es
-                  offset: const Offset(0, 4),           // Desplazamiento (X, Y)
-                ),
-              ],
-            ),
-            child: CircleAvatar(
-              radius: 40,
-              backgroundColor: Colors.white,
-              child: Icon(
-                defaultIcon, 
-                size: 45, 
-                color: const Color(0xFFD6213B),
-              ),
-            ),
-          ),
-          // El ícono flotante de "editar" o cámara
-          Container(
-            padding: const EdgeInsets.all(6),
-            decoration: const BoxDecoration(
-              color: Color(0xFFFBE750), // Amarillo de tu paleta
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black26,
-                  blurRadius: 4,
-                  offset: Offset(0, 2),
-                )
-              ],
-            ),
-            child: const Icon(Icons.edit, color: Colors.white, size: 14),
-          ),
-        ],
-      ),
-      const SizedBox(height: 8),
-      Text(
-        label, 
-        style: const TextStyle(
-          color: Color(0xFFD6213B), 
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-    ],
-  );
-}
-
-  Widget _inputFieldLocal({
-    required String hint, 
-    required IconData icon, 
-    bool? isPass,          
-    bool? obscureValue,    
-    TextInputType? keyboardType, 
-    VoidCallback? onToggleVisibility,
-  }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.9), 
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, 4))],
-      ),
-      child: TextField(
-        obscureText: (isPass ?? false) ? (obscureValue ?? false) : false,
-        keyboardType: keyboardType ?? TextInputType.text, 
-        decoration: InputDecoration(
-          hintText: hint,
-          prefixIcon: Icon(icon, color: const Color(0xFFD6213B)),
-          border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
-          suffixIcon: (isPass ?? false) 
-            ? IconButton(
-                icon: Icon((obscureValue ?? false) ? Icons.visibility_off : Icons.visibility, color: Colors.grey),
-                onPressed: onToggleVisibility,
-              ) 
-            : null,
-        ),
-      ),
-    );
-  }
-}
-
-// --- PANTALLA DE PRIVACIDAD Y SEGURIDAD (CAMBIO DE PIN) ---
-class PrivacySecurityScreen extends StatefulWidget {
-  const PrivacySecurityScreen({super.key});
-
-  @override
-  State<PrivacySecurityScreen> createState() => _PrivacySecurityScreenState();
-}
-
-class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
-  // Variables para controlar la visibilidad de los PINs
-  bool _obscureNewPin = true;
-  bool _obscureConfirmPin = true;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Stack(
-        children: [
-          // 1. Fondo con imagen y filtro
-          Container(
-            decoration: BoxDecoration(
-              image: DecorationImage(
-                image: const AssetImage('assets/f2.png'),
-                fit: BoxFit.cover,
-                colorFilter: ColorFilter.mode(
-                  Colors.white.withOpacity(0.5),
-                  BlendMode.dstATop,
-                ),
-              ),
-            ),
-          ),
-
-          // 2. Contenido
-          SafeArea(
-            child: Column(
-              children: [
-                // Header Rojo (Estilo de la App)
-                _buildHeaderLocal(),
-
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 50),
-                      child: Column(
-                        children: [
-                          const SizedBox(height: 40),
-                          const Icon(
-                            Icons.security_rounded,
-                            size: 80,
-                            color: Color(0xFFD6213B),
-                          ),
-                          const SizedBox(height: 20),
-                          const Text(
-                            'SEGURIDAD',
-                            style: TextStyle(
-                              fontSize: 28,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFFD6213B),
-                            ),
-                          ),
-                          const Text(
-                            'Actualiza tu PIN de acceso para el área de tutor',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(color: Color(0xFFD6213B), fontSize: 16),
-                          ),
-                          const SizedBox(height: 40),
-
-                          // --- CAMPOS DE PIN ---
-                          _inputFieldLocal(
-                            hint: 'Nuevo PIN (4 dígitos)',
-                            icon: Icons.lock_outline,
-                            isPass: true,
-                            obscureValue: _obscureNewPin,
-                            keyboardType: TextInputType.number,
-                            onToggleVisibility: () {
-                              setState(() => _obscureNewPin = !_obscureNewPin);
-                            },
-                          ),
-                          const SizedBox(height: 20),
-
-                          _inputFieldLocal(
-                            hint: 'Confirmar Nuevo PIN',
-                            icon: Icons.check_circle_outline,
-                            isPass: true,
-                            obscureValue: _obscureConfirmPin,
-                            keyboardType: TextInputType.number,
-                            onToggleVisibility: () {
-                              setState(() => _obscureConfirmPin = !_obscureConfirmPin);
-                            },
-                          ),
-                          const SizedBox(height: 30),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-
-                // 3. Botones de Acción
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(25, 10, 25, 30),
-                  child: Column(
-                    children: [
-                      ElevatedButton(
-                        onPressed: () {
-                          // Lógica para guardar el nuevo PIN
-                          Navigator.pop(context);
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFD6213B),
-                          minimumSize: const Size(double.infinity, 60),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(30),
-                          ),
-                          elevation: 5,
-                        ),
-                        child: const Text(
-                          'ACTUALIZAR PIN',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 15),
-                      TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text(
-                          'Cancelar',
-                          style: TextStyle(
-                            color: Color(0xFFD6213B),
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            decoration: TextDecoration.underline,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          )
-        ],
-      ),
-    );
-  }
-
-  // --- MÉTODOS AUXILIARES REUTILIZADOS ---
-
-  Widget _buildHeaderLocal() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
-      decoration: const BoxDecoration(
-        color: Color(0xFFD6213B),
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(50),
-          bottomRight: Radius.circular(50),
-        ),
-      ),
-      child: Column(
-        children: [
-          const SizedBox(height: 10),
-          Image.asset('assets/titulo.png', height: 60, fit: BoxFit.contain),
-        ],
-      ),
-    );
-  }
-
-  Widget _inputFieldLocal({
-    required String hint,
-    required IconData icon,
-    bool? isPass,
-    bool? obscureValue,
-    TextInputType? keyboardType,
-    VoidCallback? onToggleVisibility,
-  }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.9),
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          )
-        ],
-      ),
-      child: TextField(
-        obscureText: (isPass ?? false) ? (obscureValue ?? false) : false,
-        keyboardType: keyboardType ?? TextInputType.text,
-        maxLength: (keyboardType == TextInputType.number) ? 4 : null,
-        textAlign: (keyboardType == TextInputType.number) ? TextAlign.center : TextAlign.start,
-        style: (keyboardType == TextInputType.number) 
-            ? const TextStyle(fontSize: 22, letterSpacing: 10, fontWeight: FontWeight.bold)
-            : null,
-        decoration: InputDecoration(
-          counterText: "", // Oculta el contador de caracteres
-          hintText: hint,
-          hintStyle: const TextStyle(fontSize: 14, letterSpacing: 0),
-          prefixIcon: Icon(icon, color: const Color(0xFFD6213B)),
-          border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
-          suffixIcon: (isPass ?? false)
-              ? IconButton(
-                  icon: Icon(
-                    (obscureValue ?? false) ? Icons.visibility_off : Icons.visibility,
-                    color: Colors.grey,
-                  ),
-                  onPressed: onToggleVisibility,
-                )
-              : null,
-        ),
-      ),
-    );
-  }
-}
-
-// opciones tutor
-// Asignar tarea
-class AssignTaskScreen extends StatelessWidget {
-  const AssignTaskScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Stack(
-        children: [
-          _buildGlobalBackground(),
-          Column(
-            children: [
-              _buildCustomHeader(context, "NUEVA TAREA"),
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(30),
-                  child: Column(
-                    children: [
-                      _customInput("Título de la tarea", Icons.edit_note_rounded),
-                      const SizedBox(height: 20),
-                      _customInput("Descripción", Icons.description_outlined, maxLines: 3),
-                      const SizedBox(height: 20),
-                      _customInput("Puntos (Estrellas)", Icons.stars_rounded, keyboardType: TextInputType.number),
-                      const SizedBox(height: 40),
-                      _primaryButton("CREAR TAREA", () => Navigator.pop(context)),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// validar tarea
-class ValidateTasksScreen extends StatelessWidget {
-  const ValidateTasksScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Stack(
-        children: [
-          _buildGlobalBackground(),
-          Column(
-            children: [
-              _buildCustomHeader(context, "VALIDAR TAREAS"),
-              Expanded(
-                child: ListView.builder(
-                  padding: const EdgeInsets.all(20),
-                  itemCount: 3, // Ejemplo estático
-                  itemBuilder: (context, index) => Container(
-                    margin: const EdgeInsets.only(bottom: 15),
-                    padding: const EdgeInsets.all(15),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.9),
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10, offset: const Offset(0, 4))],
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.pending_actions, color: Colors.orange, size: 30),
-                        const SizedBox(width: 15),
-                        const Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text("Tarea terminada", style: TextStyle(fontWeight: FontWeight.bold)),
-                              Text("Recoger los juguetes", style: TextStyle(fontSize: 12, color: Colors.grey)),
-                            ],
-                          ),
-                        ),
-                        IconButton(onPressed: () {}, icon: const Icon(Icons.check_circle, color: Colors.green)),
-                        IconButton(onPressed: () {}, icon: const Icon(Icons.cancel, color: Colors.red)),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// informes y progreso
-class ReportsScreen extends StatelessWidget {
-  const ReportsScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Stack(
-        children: [
-          _buildGlobalBackground(),
-          Column(
-            children: [
-              _buildCustomHeader(context, "PROGRESO"),
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(30),
-                  child: Column(
-                    children: [
-                      _buildProgressCard("Matemáticas", 0.75, "75%"),
-                      _buildProgressCard("Lectura", 0.40, "40%"),
-                      _buildProgressCard("Hogar", 0.90, "90%"),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildProgressCard(String label, double value, String percent) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 20),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.9),
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10, offset: const Offset(0, 4))],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-              Text(percent, style: const TextStyle(color: Color(0xFFD6213B), fontWeight: FontWeight.bold)),
-            ],
-          ),
-          const SizedBox(height: 10),
-          LinearProgressIndicator(
-            value: value,
-            backgroundColor: Colors.grey.shade200,
-            color: const Color(0xFFD6213B),
-            minHeight: 12,
-            borderRadius: BorderRadius.circular(10),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// recompensas
-class RewardsScreen extends StatelessWidget {
-  const RewardsScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Stack(
-        children: [
-          _buildGlobalBackground(),
-          Column(
-            children: [
-              _buildCustomHeader(context, "RECOMPENSAS"),
-              Expanded(
-                child: GridView.count(
-                  crossAxisCount: 2,
-                  padding: const EdgeInsets.all(20),
-                  mainAxisSpacing: 15,
-                  crossAxisSpacing: 15,
-                  children: [
-                    _rewardCard("Helado", Icons.icecream_rounded, "20 pts"),
-                    _rewardCard("Videojuego", Icons.sports_esports_rounded, "50 pts"),
-                    _rewardCard("Parque", Icons.park_rounded, "100 pts"),
-                    _rewardCard("Cine", Icons.movie_rounded, "150 pts"),
-                  ],
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(25),
-                child: _primaryButton("AÑADIR NUEVA RECOMPENSA", () {}),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _rewardCard(String title, IconData icon, String pts) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.9),
-        borderRadius: BorderRadius.circular(25),
-        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10, offset: const Offset(0, 4))],
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, size: 50, color: const Color(0xFFD6213B)),
-          const SizedBox(height: 10),
-          Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-          Text(pts, style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.bold)),
-        ],
-      ),
-    );
-  }
-}
-
-// helpers
-// Fondo con la imagen f2.png y opacidad blanca
-Widget _buildGlobalBackground() {
-  return Container(
-    decoration: BoxDecoration(
-      image: DecorationImage(
-        image: const AssetImage('assets/f2.png'),
-        fit: BoxFit.cover,
-        colorFilter: ColorFilter.mode(
-          Colors.white.withOpacity(0.5),
-          BlendMode.dstATop,
-        ),
-      ),
-    ),
-  );
-}
-
-// Header personalizado que acepta título y botón de atrás
-Widget _buildCustomHeader(BuildContext context, String title) {
-  return Container(
-    width: double.infinity,
-    padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 10),
-    decoration: const BoxDecoration(
-      color: Color(0xFFD6213B),
-      borderRadius: BorderRadius.only(
-        bottomLeft: Radius.circular(50),
-        bottomRight: Radius.circular(50),
-      ),
-    ),
-    child: SafeArea(
-      bottom: false,
-      child: Row(
-        children: [
-          IconButton(
-            icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
-            onPressed: () => Navigator.pop(context),
-          ),
-          Expanded(
-            child: Text(
-              title,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-          const SizedBox(width: 48), // Balance para centrar el texto
-        ],
-      ),
-    ),
-  );
-}
-
-// Input con sombra y bordes redondeados
-Widget _customInput(String hint, IconData icon, {int maxLines = 1, TextInputType keyboardType = TextInputType.text}) {
-  return Container(
-    decoration: BoxDecoration(
-      color: Colors.white.withOpacity(0.9),
-      borderRadius: BorderRadius.circular(20),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.black.withOpacity(0.1),
-          blurRadius: 10,
-          offset: const Offset(0, 4),
-        )
-      ],
-    ),
-    child: TextField(
-      maxLines: maxLines,
-      keyboardType: keyboardType,
-      decoration: InputDecoration(
-        hintText: hint,
-        prefixIcon: Icon(icon, color: const Color(0xFFD6213B)),
-        border: InputBorder.none,
-        contentPadding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
-      ),
-    ),
-  );
-}
-
-// Botón rojo estándar
-Widget _primaryButton(String text, VoidCallback onPressed) {
-  return ElevatedButton(
-    onPressed: onPressed,
-    style: ElevatedButton.styleFrom(
-      backgroundColor: const Color(0xFFD6213B),
-      minimumSize: const Size(double.infinity, 60),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-      elevation: 5,
-    ),
-    child: Text(
-      text,
-      style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-    ),
-  );
 }

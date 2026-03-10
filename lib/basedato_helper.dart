@@ -3,7 +3,7 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 
-var path = null;
+var path;
 
 class BasedatoHelper {
   Future<Database> _openDatabase() async {
