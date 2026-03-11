@@ -97,7 +97,7 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       // Si usas Chrome en Laragon:
       // USA TU IP REAL EN LUGAR DE LOCALHOST
-      // var url = Uri.parse('http://192.168.0.167/api_hk/login.php'); // Mara
+      // var url = Uri.parse('http://192.168.0.167/Hello-Kitty-habitos-de-scroll/api_hk/login.php'); // Mara
       var url = Uri.parse('http://localhost/Hello-Kitty-habitos-de-scroll/api_hk/login.php'); // Sergio
 
       var response = await http.post(url, body: {
@@ -467,7 +467,7 @@ Future<void> _verifyPin() async {
 
   try {
     final response = await http.post(
-      // Uri.parse('http://192.168.0.167/api_hk/verify_pin.php'), // MARA
+      // Uri.parse('http://192.168.0.167/Hello-Kitty-habitos-de-scroll/api_hk/verify_pin.php'), // MARA
        Uri.parse('http://localhost/Hello-Kitty-habitos-de-scroll/api_hk/verify_pin.php'), // SERGIO
       body: {
         'id_usuario': widget.usuarioId, // <-- USA EL ID REAL QUE VIENE DEL LOGIN
@@ -1041,7 +1041,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   // 2. Usaremos un POST normal para asegurar la recepción de datos
   // IMPORTANTE: Asegúrate de que la IP de tu PC siga siendo 192.168.0.167
-  // var url = Uri.parse('http://192.168.0.167/api_hk/register.php'); // MARA
+  // var url = Uri.parse('http://192.168.0.167/Hello-Kitty-habitos-de-scroll/api_hk/register.php'); // MARA
   var url = Uri.parse('http://localhost/Hello-Kitty-habitos-de-scroll/api_hk/register.php'); // SERGIO
 
   try {
@@ -1404,6 +1404,66 @@ class _RegisterScreenState extends State<RegisterScreen> {
 class AccountSettingsScreen extends StatelessWidget {
   const AccountSettingsScreen({super.key});
 
+  // Función asíncrona para conectarse al backend y eliminar la cuenta
+  Future<void> _eliminarCuentaUsuario(BuildContext context) async {
+    // ⚠️ IMPORTANTE: Aquí debes poner el ID del usuario que tiene la sesión iniciada.
+    // Esto dependerá de cómo estés guardando la sesión (ej. SharedPreferences).
+    int idUsuarioActual = 7; 
+
+    // Reemplaza 'TU_IP' por la IP de tu computadora en la red local (ej. 192.168.1.x)
+    // Si usas el emulador de Android nativo, localhost equivale a 10.0.2.2
+    final url = Uri.parse('http://localhost/Hello-Kitty-habitos-de-scroll/api_hk/delete.php');
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({"id": idUsuarioActual}),
+      );
+
+      // Verificamos que el widget siga montado antes de actualizar la UI
+      if (!context.mounted) return;
+
+      final result = jsonDecode(response.body);
+
+      if (result['status'] == 'success') {
+        // 1. Cerramos el modal de confirmación
+        Navigator.pop(context);
+        
+        // 2. Mostramos un mensaje de éxito
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result['message']),
+            backgroundColor: Colors.green,
+          ),
+        );
+
+        // 3. Redirigimos a la pantalla de inicio de sesión y borramos el historial
+         Navigator.pushAndRemoveUntil(
+           context,
+           MaterialPageRoute(builder: (context) => const LoginScreen()),
+          (route) => false,
+        );
+      } else {
+        // Mostramos el mensaje de error del servidor
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result['message']),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error de conexión. Revisa tu internet o la ruta del servidor.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -1635,8 +1695,8 @@ class AccountSettingsScreen extends StatelessWidget {
             ),
             ElevatedButton(
               onPressed: () {
-                // Aquí va la lógica de backend para borrar la cuenta
-                Navigator.pop(context);
+                // Llamamos a nuestra nueva función
+                _eliminarCuentaUsuario(context);
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,
