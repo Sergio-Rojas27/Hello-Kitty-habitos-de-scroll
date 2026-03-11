@@ -2040,17 +2040,73 @@ Widget _buildProfilePicPickerLocal(String label, IconData defaultIcon) {
 
 // --- PANTALLA DE PRIVACIDAD Y SEGURIDAD (CAMBIO DE PIN) ---
 class PrivacySecurityScreen extends StatefulWidget {
-  const PrivacySecurityScreen({super.key});
+  final String usuarioId; 
+  const PrivacySecurityScreen({super.key, required this.usuarioId});
 
   @override
   State<PrivacySecurityScreen> createState() => _PrivacySecurityScreenState();
 }
 
 class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
-  // Variables para controlar la visibilidad de los PINs
+  // 2. Controladores para los campos de texto
+  final TextEditingController _pinController = TextEditingController();
+  final TextEditingController _confirmPinController = TextEditingController();
+  bool _isLoading = false;
   bool _obscureNewPin = true;
   bool _obscureConfirmPin = true;
 
+  // 3. Función para conectar con el PHP
+  Future<void> _actualizarPin() async {
+    String pin = _pinController.text;
+    String confirmPin = _confirmPinController.text;
+
+    if (pin.length != 4 || confirmPin.length != 4) {
+      _mostrarMensaje("El PIN debe ser de 4 dígitos");
+      return;
+    }
+
+    if (pin != confirmPin) {
+      _mostrarMensaje("Los PINs no coinciden");
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      final response = await http.post(
+        Uri.parse('http://localhost/Hello-Kitty-habitos-de-scroll/api_hk/update_pin.php'),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          'id_usuario': widget.usuarioId,
+          'nuevo_pin': pin,
+        }),
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (data['status'] == 'success') {
+        _mostrarMensaje(data['message'], esExito: true);
+        Navigator.pop(context); // Regresa tras actualizar
+      } else {
+        _mostrarMensaje(data['message']);
+      }
+    } catch (e) {
+      _mostrarMensaje("Error de conexión");
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  void _mostrarMensaje(String mensaje, {bool esExito = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(mensaje),
+        backgroundColor: esExito ? Colors.green : Colors.red,
+      ),
+    );
+  }
+
+  
   @override
   Widget build(BuildContext context) {
     return Scaffold(
