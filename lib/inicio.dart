@@ -97,7 +97,8 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       // Si usas Chrome en Laragon:
       // USA TU IP REAL EN LUGAR DE LOCALHOST
-      var url = Uri.parse('http://192.168.0.167/api_hk/login.php');
+      // var url = Uri.parse('http://192.168.0.167/api_hk/login.php'); // Mara
+      var url = Uri.parse('http://localhost/Hello-Kitty-habitos-de-scroll/api_hk/login.php'); // Sergio
 
       var response = await http.post(url, body: {
         'email': _emailController.text.trim(),
@@ -466,7 +467,8 @@ Future<void> _verifyPin() async {
 
   try {
     final response = await http.post(
-      Uri.parse('http://192.168.0.167/api_hk/verify_pin.php'),
+      // Uri.parse('http://192.168.0.167/api_hk/verify_pin.php'), // MARA
+       Uri.parse('http://localhost/Hello-Kitty-habitos-de-scroll/api_hk/verify_pin.php'), // SERGIO
       body: {
         'id_usuario': widget.usuarioId, // <-- USA EL ID REAL QUE VIENE DEL LOGIN
         'pin': _pinController.text,
@@ -689,30 +691,22 @@ class TutorDashboardScreen extends StatelessWidget {
                 _buildMenuButton(
                   title: 'Asignar nuevas tareas',
                   icon: Icons.add_task,
-                  onTap: () {
-                    // Navegar a la pantalla de crear tarea
-                  },
+                  onTap: ()  => Navigator.push(context, MaterialPageRoute(builder: (context) => const AssignTaskScreen())),
                 ),
                 _buildMenuButton(
                   title: 'Validar tareas completadas',
                   icon: Icons.check_circle_outline,
-                  onTap: () {
-                    // Navegar a la pantalla de validación
-                  },
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ValidateTasksScreen())),
                 ),
                 _buildMenuButton(
                   title: 'Ver informes y progreso',
                   icon: Icons.bar_chart_rounded,
-                  onTap: () {
-                    // Navegar a los reportes
-                  },
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ReportsScreen())),
                 ),
                 _buildMenuButton(
                   title: 'Establecer recompensas',
                   icon: Icons.card_giftcard_rounded,
-                  onTap: () {
-                    // Navegar a la configuración de premios
-                  },
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const RewardsScreen())),
                 ),
               ],
             ),
@@ -1047,7 +1041,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   // 2. Usaremos un POST normal para asegurar la recepción de datos
   // IMPORTANTE: Asegúrate de que la IP de tu PC siga siendo 192.168.0.167
-  var url = Uri.parse('http://192.168.0.167/api_hk/register.php');
+  // var url = Uri.parse('http://192.168.0.167/api_hk/register.php'); // MARA
+  var url = Uri.parse('http://localhost/Hello-Kitty-habitos-de-scroll/api_hk/register.php'); // SERGIO
 
   try {
     // Si NO vas a enviar fotos por ahora, usa este formato:
@@ -1484,6 +1479,10 @@ class AccountSettingsScreen extends StatelessWidget {
                   icon: Icons.edit_rounded,
                   onTap: () {
                     // Aquí iría la lógica o navegación para editar
+                    Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const EditProfileScreen()),
+                    );
                   },
                 ),
                 
@@ -1494,6 +1493,10 @@ class AccountSettingsScreen extends StatelessWidget {
                   icon: Icons.lock_rounded,
                   onTap: () {
                     // Navegar a cambiar PIN
+                    Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const PrivacySecurityScreen()),
+                  );
                   },
                 ),
 
@@ -1579,7 +1582,6 @@ class AccountSettingsScreen extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(25),
-          border: Border.all(color: Colors.red.shade200, width: 2), // Borde rojo tenue para indicar advertencia
           boxShadow: const [
             BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, 4))
           ],
@@ -1696,4 +1698,815 @@ class AccountSettingsScreen extends StatelessWidget {
       ),
     );
   }
+}
+
+// --- PANTALLA PARA MODIFICAR DATOS DE LA CUENTA ---
+class EditProfileScreen extends StatefulWidget {
+  const EditProfileScreen({super.key});
+
+  @override
+  State<EditProfileScreen> createState() => _EditProfileScreenState();
+}
+
+class _EditProfileScreenState extends State<EditProfileScreen> {
+  // Variables para controlar la visibilidad
+  bool _obscurePassword = true;
+  bool _obscurePin = true;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Stack(
+        children: [
+          // 1. Capa del fondo (Consistente con Login/Register)
+          Container(
+            decoration: BoxDecoration(
+              image: DecorationImage(
+                image: const AssetImage('assets/f2.png'),
+                fit: BoxFit.cover,
+                colorFilter: ColorFilter.mode(
+                  Colors.white.withOpacity(0.5),
+                  BlendMode.dstATop,
+                ),
+              ),
+            ),
+          ),
+
+          // 2. Contenido de edición
+          SafeArea(
+            child: Column(
+              children: [
+                _buildHeaderLocal(), 
+
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 50),
+                      child: Column(
+                        children: [
+                          const SizedBox(height: 20),
+                          const Text(
+                            'EDITAR PERFIL',
+                            style: TextStyle(
+                              fontSize: 28, 
+                              fontWeight: FontWeight.bold, 
+                              color: Color(0xFFD6213B)
+                            ),
+                          ),
+                          const Text(
+                            'Actualiza la información de tu cuenta', 
+                            style: TextStyle(color: Color(0xFFD6213B), fontSize: 16),
+                          ),
+                          const SizedBox(height: 25),
+
+                          // --- FOTOS DE PERFIL (Para actualizar) ---
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              _buildProfilePicPickerLocal('Tutor', Icons.person),
+                              _buildProfilePicPickerLocal('Niño', Icons.child_care),
+                            ],
+                          ),
+                          const SizedBox(height: 25),
+                          
+                          // --- CAMPOS DE EDICIÓN ---
+                          _inputFieldLocal(
+                            hint: 'Nombre del Tutor', 
+                            icon: Icons.person_outline,
+                          ),
+                          const SizedBox(height: 15),
+
+                          _inputFieldLocal(
+                            hint: 'Nombre del Niño', 
+                            icon: Icons.child_care, 
+                          ),
+                          const SizedBox(height: 15),
+                          
+                          _inputFieldLocal(
+                            hint: 'Correo Electrónico', 
+                            icon: Icons.email_outlined,
+                            keyboardType: TextInputType.emailAddress, 
+                          ),
+                          const SizedBox(height: 15),
+
+                          _inputFieldLocal(
+                            hint: 'Nuevo PIN de Seguridad', 
+                            icon: Icons.dialpad, 
+                            isPass: true,
+                            obscureValue: _obscurePin,
+                            keyboardType: TextInputType.number, 
+                            onToggleVisibility: () {
+                              setState(() => _obscurePin = !_obscurePin);
+                            }
+                          ),
+                          const SizedBox(height: 15),
+                          
+                          _inputFieldLocal(
+                            hint: 'Nueva Contraseña', 
+                            icon: Icons.lock_outline, 
+                            isPass: true,
+                            obscureValue: _obscurePassword,
+                            onToggleVisibility: () {
+                              setState(() => _obscurePassword = !_obscurePassword);
+                            }
+                          ),
+                          const SizedBox(height: 30), 
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+
+                // 3. Botones de Guardar / Cancelar
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(25, 10, 25, 30), 
+                  child: Column(
+                    children: [
+                      ElevatedButton(
+                        onPressed: () {
+                          // Aquí iría la lógica para guardar cambios en el backend
+                          Navigator.pop(context);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFD6213B), 
+                          minimumSize: const Size(double.infinity, 60),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                          elevation: 5,
+                        ),
+                        child: const Text(
+                          'GUARDAR CAMBIOS', 
+                          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+                        ),
+                      ),
+                      const SizedBox(height: 15),
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text(
+                          'Cancelar y volver',
+                          style: TextStyle(
+                            color: Color(0xFFD6213B), 
+                            fontSize: 16, 
+                            fontWeight: FontWeight.bold,
+                            decoration: TextDecoration.underline
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          )
+        ], 
+      ), 
+    );
+  }
+
+  // --- MÉTODOS DE SOPORTE ---
+
+  Widget _buildHeaderLocal() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
+      decoration: const BoxDecoration(
+        color: Color(0xFFD6213B),
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(50),
+          bottomRight: Radius.circular(50),
+        ),
+      ),
+      child: Column(
+        children: [
+          const SizedBox(height: 10),
+          Image.asset('assets/titulo.png', height: 60, fit: BoxFit.contain),
+        ],
+      ),
+    );
+  }
+
+Widget _buildProfilePicPickerLocal(String label, IconData defaultIcon) {
+  return Column(
+    children: [
+      Stack(
+        alignment: Alignment.bottomRight,
+        children: [
+          // Este Container es el que genera la sombra
+          Container(
+            padding: const EdgeInsets.all(4), // Espacio para el borde blanco
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.9),
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.2), // Color de la sombra
+                  blurRadius: 10,                       // Qué tan difuminada es
+                  offset: const Offset(0, 4),           // Desplazamiento (X, Y)
+                ),
+              ],
+            ),
+            child: CircleAvatar(
+              radius: 40,
+              backgroundColor: Colors.white,
+              child: Icon(
+                defaultIcon, 
+                size: 45, 
+                color: const Color(0xFFD6213B),
+              ),
+            ),
+          ),
+          // El ícono flotante de "editar" o cámara
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: const BoxDecoration(
+              color: Color(0xFFFBE750), // Amarillo de tu paleta
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black26,
+                  blurRadius: 4,
+                  offset: Offset(0, 2),
+                )
+              ],
+            ),
+            child: const Icon(Icons.edit, color: Colors.white, size: 14),
+          ),
+        ],
+      ),
+      const SizedBox(height: 8),
+      Text(
+        label, 
+        style: const TextStyle(
+          color: Color(0xFFD6213B), 
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    ],
+  );
+}
+
+  Widget _inputFieldLocal({
+    required String hint, 
+    required IconData icon, 
+    bool? isPass,          
+    bool? obscureValue,    
+    TextInputType? keyboardType, 
+    VoidCallback? onToggleVisibility,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.9), 
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, 4))],
+      ),
+      child: TextField(
+        obscureText: (isPass ?? false) ? (obscureValue ?? false) : false,
+        keyboardType: keyboardType ?? TextInputType.text, 
+        decoration: InputDecoration(
+          hintText: hint,
+          prefixIcon: Icon(icon, color: const Color(0xFFD6213B)),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
+          suffixIcon: (isPass ?? false) 
+            ? IconButton(
+                icon: Icon((obscureValue ?? false) ? Icons.visibility_off : Icons.visibility, color: Colors.grey),
+                onPressed: onToggleVisibility,
+              ) 
+            : null,
+        ),
+      ),
+    );
+  }
+}
+
+// --- PANTALLA DE PRIVACIDAD Y SEGURIDAD (CAMBIO DE PIN) ---
+class PrivacySecurityScreen extends StatefulWidget {
+  const PrivacySecurityScreen({super.key});
+
+  @override
+  State<PrivacySecurityScreen> createState() => _PrivacySecurityScreenState();
+}
+
+class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
+  // Variables para controlar la visibilidad de los PINs
+  bool _obscureNewPin = true;
+  bool _obscureConfirmPin = true;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Stack(
+        children: [
+          // 1. Fondo con imagen y filtro
+          Container(
+            decoration: BoxDecoration(
+              image: DecorationImage(
+                image: const AssetImage('assets/f2.png'),
+                fit: BoxFit.cover,
+                colorFilter: ColorFilter.mode(
+                  Colors.white.withOpacity(0.5),
+                  BlendMode.dstATop,
+                ),
+              ),
+            ),
+          ),
+
+          // 2. Contenido
+          SafeArea(
+            child: Column(
+              children: [
+                // Header Rojo (Estilo de la App)
+                _buildHeaderLocal(),
+
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 50),
+                      child: Column(
+                        children: [
+                          const SizedBox(height: 40),
+                          const Icon(
+                            Icons.security_rounded,
+                            size: 80,
+                            color: Color(0xFFD6213B),
+                          ),
+                          const SizedBox(height: 20),
+                          const Text(
+                            'SEGURIDAD',
+                            style: TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFFD6213B),
+                            ),
+                          ),
+                          const Text(
+                            'Actualiza tu PIN de acceso para el área de tutor',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: Color(0xFFD6213B), fontSize: 16),
+                          ),
+                          const SizedBox(height: 40),
+
+                          // --- CAMPOS DE PIN ---
+                          _inputFieldLocal(
+                            hint: 'Nuevo PIN (4 dígitos)',
+                            icon: Icons.lock_outline,
+                            isPass: true,
+                            obscureValue: _obscureNewPin,
+                            keyboardType: TextInputType.number,
+                            onToggleVisibility: () {
+                              setState(() => _obscureNewPin = !_obscureNewPin);
+                            },
+                          ),
+                          const SizedBox(height: 20),
+
+                          _inputFieldLocal(
+                            hint: 'Confirmar Nuevo PIN',
+                            icon: Icons.check_circle_outline,
+                            isPass: true,
+                            obscureValue: _obscureConfirmPin,
+                            keyboardType: TextInputType.number,
+                            onToggleVisibility: () {
+                              setState(() => _obscureConfirmPin = !_obscureConfirmPin);
+                            },
+                          ),
+                          const SizedBox(height: 30),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+
+                // 3. Botones de Acción
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(25, 10, 25, 30),
+                  child: Column(
+                    children: [
+                      ElevatedButton(
+                        onPressed: () {
+                          // Lógica para guardar el nuevo PIN
+                          Navigator.pop(context);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFD6213B),
+                          minimumSize: const Size(double.infinity, 60),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                          elevation: 5,
+                        ),
+                        child: const Text(
+                          'ACTUALIZAR PIN',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 15),
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text(
+                          'Cancelar',
+                          style: TextStyle(
+                            color: Color(0xFFD6213B),
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            decoration: TextDecoration.underline,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          )
+        ],
+      ),
+    );
+  }
+
+  // --- MÉTODOS AUXILIARES REUTILIZADOS ---
+
+  Widget _buildHeaderLocal() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
+      decoration: const BoxDecoration(
+        color: Color(0xFFD6213B),
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(50),
+          bottomRight: Radius.circular(50),
+        ),
+      ),
+      child: Column(
+        children: [
+          const SizedBox(height: 10),
+          Image.asset('assets/titulo.png', height: 60, fit: BoxFit.contain),
+        ],
+      ),
+    );
+  }
+
+  Widget _inputFieldLocal({
+    required String hint,
+    required IconData icon,
+    bool? isPass,
+    bool? obscureValue,
+    TextInputType? keyboardType,
+    VoidCallback? onToggleVisibility,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.9),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          )
+        ],
+      ),
+      child: TextField(
+        obscureText: (isPass ?? false) ? (obscureValue ?? false) : false,
+        keyboardType: keyboardType ?? TextInputType.text,
+        maxLength: (keyboardType == TextInputType.number) ? 4 : null,
+        textAlign: (keyboardType == TextInputType.number) ? TextAlign.center : TextAlign.start,
+        style: (keyboardType == TextInputType.number) 
+            ? const TextStyle(fontSize: 22, letterSpacing: 10, fontWeight: FontWeight.bold)
+            : null,
+        decoration: InputDecoration(
+          counterText: "", // Oculta el contador de caracteres
+          hintText: hint,
+          hintStyle: const TextStyle(fontSize: 14, letterSpacing: 0),
+          prefixIcon: Icon(icon, color: const Color(0xFFD6213B)),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
+          suffixIcon: (isPass ?? false)
+              ? IconButton(
+                  icon: Icon(
+                    (obscureValue ?? false) ? Icons.visibility_off : Icons.visibility,
+                    color: Colors.grey,
+                  ),
+                  onPressed: onToggleVisibility,
+                )
+              : null,
+        ),
+      ),
+    );
+  }
+}
+
+// opciones tutor
+// Asignar tarea
+class AssignTaskScreen extends StatelessWidget {
+  const AssignTaskScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Stack(
+        children: [
+          _buildGlobalBackground(),
+          Column(
+            children: [
+              _buildCustomHeader(context, "NUEVA TAREA"),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(30),
+                  child: Column(
+                    children: [
+                      _customInput("Título de la tarea", Icons.edit_note_rounded),
+                      const SizedBox(height: 20),
+                      _customInput("Descripción", Icons.description_outlined, maxLines: 3),
+                      const SizedBox(height: 20),
+                      _customInput("Puntos (Estrellas)", Icons.stars_rounded, keyboardType: TextInputType.number),
+                      const SizedBox(height: 40),
+                      _primaryButton("CREAR TAREA", () => Navigator.pop(context)),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// validar tarea
+class ValidateTasksScreen extends StatelessWidget {
+  const ValidateTasksScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Stack(
+        children: [
+          _buildGlobalBackground(),
+          Column(
+            children: [
+              _buildCustomHeader(context, "VALIDAR TAREAS"),
+              Expanded(
+                child: ListView.builder(
+                  padding: const EdgeInsets.all(20),
+                  itemCount: 3, // Ejemplo estático
+                  itemBuilder: (context, index) => Container(
+                    margin: const EdgeInsets.only(bottom: 15),
+                    padding: const EdgeInsets.all(15),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.9),
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10, offset: const Offset(0, 4))],
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.pending_actions, color: Colors.orange, size: 30),
+                        const SizedBox(width: 15),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text("Tarea terminada", style: TextStyle(fontWeight: FontWeight.bold)),
+                              Text("Recoger los juguetes", style: TextStyle(fontSize: 12, color: Colors.grey)),
+                            ],
+                          ),
+                        ),
+                        IconButton(onPressed: () {}, icon: const Icon(Icons.check_circle, color: Colors.green)),
+                        IconButton(onPressed: () {}, icon: const Icon(Icons.cancel, color: Colors.red)),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// informes y progreso
+class ReportsScreen extends StatelessWidget {
+  const ReportsScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Stack(
+        children: [
+          _buildGlobalBackground(),
+          Column(
+            children: [
+              _buildCustomHeader(context, "PROGRESO"),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(30),
+                  child: Column(
+                    children: [
+                      _buildProgressCard("Matemáticas", 0.75, "75%"),
+                      _buildProgressCard("Lectura", 0.40, "40%"),
+                      _buildProgressCard("Hogar", 0.90, "90%"),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProgressCard(String label, double value, String percent) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.9),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10, offset: const Offset(0, 4))],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              Text(percent, style: const TextStyle(color: Color(0xFFD6213B), fontWeight: FontWeight.bold)),
+            ],
+          ),
+          const SizedBox(height: 10),
+          LinearProgressIndicator(
+            value: value,
+            backgroundColor: Colors.grey.shade200,
+            color: const Color(0xFFD6213B),
+            minHeight: 12,
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// recompensas
+class RewardsScreen extends StatelessWidget {
+  const RewardsScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Stack(
+        children: [
+          _buildGlobalBackground(),
+          Column(
+            children: [
+              _buildCustomHeader(context, "RECOMPENSAS"),
+              Expanded(
+                child: GridView.count(
+                  crossAxisCount: 2,
+                  padding: const EdgeInsets.all(20),
+                  mainAxisSpacing: 15,
+                  crossAxisSpacing: 15,
+                  children: [
+                    _rewardCard("Helado", Icons.icecream_rounded, "20 pts"),
+                    _rewardCard("Videojuego", Icons.sports_esports_rounded, "50 pts"),
+                    _rewardCard("Parque", Icons.park_rounded, "100 pts"),
+                    _rewardCard("Cine", Icons.movie_rounded, "150 pts"),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(25),
+                child: _primaryButton("AÑADIR NUEVA RECOMPENSA", () {}),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _rewardCard(String title, IconData icon, String pts) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.9),
+        borderRadius: BorderRadius.circular(25),
+        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10, offset: const Offset(0, 4))],
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: 50, color: const Color(0xFFD6213B)),
+          const SizedBox(height: 10),
+          Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+          Text(pts, style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.bold)),
+        ],
+      ),
+    );
+  }
+}
+
+// helpers
+// Fondo con la imagen f2.png y opacidad blanca
+Widget _buildGlobalBackground() {
+  return Container(
+    decoration: BoxDecoration(
+      image: DecorationImage(
+        image: const AssetImage('assets/f2.png'),
+        fit: BoxFit.cover,
+        colorFilter: ColorFilter.mode(
+          Colors.white.withOpacity(0.5),
+          BlendMode.dstATop,
+        ),
+      ),
+    ),
+  );
+}
+
+// Header personalizado que acepta título y botón de atrás
+Widget _buildCustomHeader(BuildContext context, String title) {
+  return Container(
+    width: double.infinity,
+    padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 10),
+    decoration: const BoxDecoration(
+      color: Color(0xFFD6213B),
+      borderRadius: BorderRadius.only(
+        bottomLeft: Radius.circular(50),
+        bottomRight: Radius.circular(50),
+      ),
+    ),
+    child: SafeArea(
+      bottom: false,
+      child: Row(
+        children: [
+          IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
+            onPressed: () => Navigator.pop(context),
+          ),
+          Expanded(
+            child: Text(
+              title,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          const SizedBox(width: 48), // Balance para centrar el texto
+        ],
+      ),
+    ),
+  );
+}
+
+// Input con sombra y bordes redondeados
+Widget _customInput(String hint, IconData icon, {int maxLines = 1, TextInputType keyboardType = TextInputType.text}) {
+  return Container(
+    decoration: BoxDecoration(
+      color: Colors.white.withOpacity(0.9),
+      borderRadius: BorderRadius.circular(20),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.1),
+          blurRadius: 10,
+          offset: const Offset(0, 4),
+        )
+      ],
+    ),
+    child: TextField(
+      maxLines: maxLines,
+      keyboardType: keyboardType,
+      decoration: InputDecoration(
+        hintText: hint,
+        prefixIcon: Icon(icon, color: const Color(0xFFD6213B)),
+        border: InputBorder.none,
+        contentPadding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
+      ),
+    ),
+  );
+}
+
+// Botón rojo estándar
+Widget _primaryButton(String text, VoidCallback onPressed) {
+  return ElevatedButton(
+    onPressed: onPressed,
+    style: ElevatedButton.styleFrom(
+      backgroundColor: const Color(0xFFD6213B),
+      minimumSize: const Size(double.infinity, 60),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+      elevation: 5,
+    ),
+    child: Text(
+      text,
+      style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+    ),
+  );
 }
