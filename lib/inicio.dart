@@ -184,7 +184,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           const SizedBox(height: 40),
                           
                           // Pasamos los controladores a los campos
-                          _inputField('Usuario', Icons.person_outline, controller: _emailController),
+                          _inputField('Email', Icons.person_outline, controller: _emailController),
                           const SizedBox(height: 20),
                           _inputField('Contraseña', Icons.lock_outline, isPass: true, controller: _passwordController),
                           
@@ -480,16 +480,17 @@ Future<void> _verifyPin() async {
     if (data['status'] == 'success') {
       if (!mounted) return;
       
-      // Navegamos al Dashboard pasando el nombre que nos dio el PHP
+      // Navegamos al Dashboard pasando el nombre Y EL ID
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
           builder: (context) => TutorDashboardScreen(
+            idTut: int.parse(widget.usuarioId), // <-- PASAMOS EL ID AQUÍ
             nombreTutor: data['nombre_tutor'], 
           ),
         ),
       );
-    } else {
+    }else {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('PIN Incorrecto'), backgroundColor: Colors.red),
@@ -655,12 +656,15 @@ Widget build(BuildContext context) {
 }
 
 class TutorDashboardScreen extends StatelessWidget {
-  final String nombreTutor; // <-- Agregamos esta variable
+  final String nombreTutor; 
+  final int idTut; // <--- Asegúrate de que esta variable exista
 
   const TutorDashboardScreen({
     super.key, 
-    this.nombreTutor = 'Tutor' // Valor por defecto por si acaso
+    required this.idTut, // Requerido para que no sea nulo
+    this.nombreTutor = 'Tutor',
   });
+  
   
 
   @override
@@ -870,12 +874,13 @@ class TutorDashboardScreen extends StatelessWidget {
           // Ícono de acción derecho (Ajustes)
           // Ícono de acción derecho (Ajustes)
           GestureDetector(
-            onTap: () {
-              // Navegar a la pantalla de configuración
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const AccountSettingsScreen()),
-              );
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => AccountSettingsScreen(idTut: idTut), // <--- Le pasamos el ID aquí
+              ),
+            );
             },
             child: Container(
               padding: const EdgeInsets.all(12),
@@ -1385,83 +1390,85 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 class AccountSettingsScreen extends StatelessWidget {
-  const AccountSettingsScreen({super.key});
+  final int idTut; // <--- Agregamos esta línea
 
-  // Función asíncrona para conectarse al backend y eliminar la cuenta
-  Future<void> _eliminarCuentaUsuario(BuildContext context) async {
-    // ⚠️ IMPORTANTE: Aquí debes poner el ID del usuario que tiene la sesión iniciada.
-    // Esto dependerá de cómo estés guardando la sesión (ej. SharedPreferences).
-    int idUsuarioActual = 7; 
+  // Actualizamos el constructor para pedir el ID
+  const AccountSettingsScreen({super.key, required this.idTut}); 
 
-    // Reemplaza 'TU_IP' por la IP de tu computadora en la red local (ej. 192.168.1.x)
-    // Si usas el emulador de Android nativo, localhost equivale a 10.0.2.2
-    final url = Uri.parse('http://localhost/Hello-Kitty-habitos-de-scroll/api_hk/delete.php');
+  Future<void> _eliminarCuenta(BuildContext context) async {
+    // IMPORTANTE: Cambia 'localhost' por tu IP (ej. 192.168.x.x) para que el celular conecte
+    // Y asegúrate de que apunte a delete.php, no a verify_pin.php
+    var url = Uri.parse('http://localhost/Hello-Kitty-habitos-de-scroll/api_hk/delete.php'); 
 
     try {
-      final response = await http.post(
+      var response = await http.post(
         url,
-        headers: {"Content-Type": "application/json"},
-        body: jsonEncode({"id": idUsuarioActual}),
+        headers: {
+          "Content-Type": "application/json", // INDISPENSABLE
+          "Accept": "application/json",
+        },
+        body: jsonEncode({
+          'id': idTut, 
+        }),
       );
 
-      // Verificamos que el widget siga montado antes de actualizar la UI
       if (!context.mounted) return;
 
-      final result = jsonDecode(response.body);
-
-      if (result['status'] == 'success') {
-        // 1. Cerramos el modal de confirmación
-        Navigator.pop(context);
-        
-        // 2. Mostramos un mensaje de éxito
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(result['message']),
-            backgroundColor: Colors.green,
-          ),
-        );
-
-        // 3. Redirigimos a la pantalla de inicio de sesión y borramos el historial
-         Navigator.pushAndRemoveUntil(
-           context,
-           MaterialPageRoute(builder: (context) => const LoginScreen()),
-          (route) => false,
-        );
-      } else {
-        // Mostramos el mensaje de error del servidor
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(result['message']),
-            backgroundColor: Colors.red,
-          ),
-        );
+      if (response.statusCode == 200) {
+        final result = jsonDecode(response.body);
+        if (result['status'] == 'success') {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Cuenta eliminada correctamente'), backgroundColor: Colors.green),
+          );
+          
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (context) => const LoginScreen()),
+            (Route<dynamic> route) => false,
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Error: ${result['message']}"), backgroundColor: const Color(0xFFD6213B)),
+          );
+        }
       }
     } catch (e) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error de conexión. Revisa tu internet o la ruta del servidor.'),
-          backgroundColor: Colors.red,
-        ),
+        SnackBar(content: Text('Error de conexión: $e'), backgroundColor: const Color(0xFFD6213B)),
       );
     }
+  }
+
+  void _mostrarDialogoEliminar(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Text('¿Eliminar cuenta?', style: TextStyle(color: Color(0xFFD6213B), fontWeight: FontWeight.bold)),
+          content: const Text('Esta acción es irreversible. Se borrarán todos tus datos y los de los niños asociados.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(), // Cierra el diálogo
+              child: const Text('Cancelar', style: TextStyle(color: Colors.grey)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFD6213B),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              onPressed: () {
+                Navigator.of(context).pop(); // Cierra el diálogo primero
+                _eliminarCuenta(context);    // Llama a la función que borra en la BD
+              },
+              child: const Text('Eliminar', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -1533,18 +1540,7 @@ class AccountSettingsScreen extends StatelessWidget {
                 ),
                 
                 // Botón: Editar Cuenta
-                _buildSettingsOption(
-                  title: 'Editar cuenta',
-                  subtitle: 'Modifica tu nombre, correo o avatar',
-                  icon: Icons.edit_rounded,
-                  onTap: () {
-                    // Aquí iría la lógica o navegación para editar
-                    Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const EditProfileScreen()),
-                    );
-                  },
-                ),
+                
                 
                 // Botón Extra: Cambiar PIN de Seguridad (Ideal para el Tutor)
                 _buildSettingsOption(
@@ -1552,11 +1548,12 @@ class AccountSettingsScreen extends StatelessWidget {
                   subtitle: 'Cambia tu PIN de seguridad',
                   icon: Icons.lock_rounded,
                   onTap: () {
-                    // Navegar a cambiar PIN
                     Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const PrivacySecurityScreen()),
-                  );
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => PrivacySecurityScreen(usuarioId: idTut), // <--- Pasamos el ID
+                      ),
+                    );
                   },
                 ),
 
@@ -1696,7 +1693,7 @@ class AccountSettingsScreen extends StatelessWidget {
             ElevatedButton(
               onPressed: () {
                 // Llamamos a nuestra nueva función
-                _eliminarCuentaUsuario(context);
+                _eliminarCuenta(context);
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,
@@ -1760,9 +1757,11 @@ class AccountSettingsScreen extends StatelessWidget {
   }
 }
 
-// --- PANTALLA PARA MODIFICAR DATOS DE LA CUENTA ---
+/*/ --- PANTALLA PARA MODIFICAR DATOS DE LA CUENTA ---
 class EditProfileScreen extends StatefulWidget {
-  const EditProfileScreen({super.key});
+  final int usuarioId; // <-- Agregamos el ID
+
+  const EditProfileScreen({super.key, required this.usuarioId});
 
   @override
   State<EditProfileScreen> createState() => _EditProfileScreenState();
@@ -1772,6 +1771,55 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   // Variables para controlar la visibilidad
   bool _obscurePassword = true;
   bool _obscurePin = true;
+
+  // 1. Agrega los controladores en tu _PrivacySecurityScreenState
+final TextEditingController _pinController = TextEditingController();
+final TextEditingController _confirmPinController = TextEditingController();
+bool _isUpdating = false;
+
+// 2. La función para enviar los datos
+Future<void> _updatePin() async {
+  String pin = _pinController.text;
+  String confirm = _confirmPinController.text;
+
+  if (pin.length != 4) {
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("El PIN debe ser de 4 dígitos")));
+    return;
+  }
+
+  if (pin != confirm) {
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Los PINs no coinciden")));
+    return;
+  }
+
+  setState(() => _isUpdating = true);
+
+  try {
+    final response = await http.post(
+      Uri.parse('http://tu_ip_aqui/Hello-Kitty-habitos-de-scroll/api_hk/update_pin.php'),
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({
+        'id_usuario': widget.usuarioId, // El ID que pasamos por pantallas
+        'nuevo_pin': pin,
+      }),
+    );
+
+    final resData = jsonDecode(response.body);
+
+    if (resData['status'] == 'success') {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("¡PIN Actualizado!"), backgroundColor: Colors.green));
+      Navigator.pop(context); // Regresa a ajustes
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(resData['message']), backgroundColor: Colors.red));
+    }
+  } catch (e) {
+    print("Error: $e");
+  } finally {
+    setState(() => _isUpdating = false);
+  }
+}
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -2036,20 +2084,82 @@ Widget _buildProfilePicPickerLocal(String label, IconData defaultIcon) {
       ),
     );
   }
-}
+}*/
 
 // --- PANTALLA DE PRIVACIDAD Y SEGURIDAD (CAMBIO DE PIN) ---
 class PrivacySecurityScreen extends StatefulWidget {
-  const PrivacySecurityScreen({super.key});
+  final int usuarioId; // El ID que venimos arrastrando
+
+  const PrivacySecurityScreen({super.key, required this.usuarioId});
 
   @override
   State<PrivacySecurityScreen> createState() => _PrivacySecurityScreenState();
 }
 
 class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
-  // Variables para controlar la visibilidad de los PINs
+  // 1. Controladores y variables de estado
+  final TextEditingController _pinController = TextEditingController();
+  final TextEditingController _confirmPinController = TextEditingController();
+  
   bool _obscureNewPin = true;
   bool _obscureConfirmPin = true;
+  bool _isUpdating = false;
+
+  // 2. Función para conectar con el PHP que ya aprobamos
+  Future<void> _updatePin() async {
+    String pin = _pinController.text;
+    String confirm = _confirmPinController.text;
+
+    if (pin.length != 4) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("El PIN debe ser de 4 dígitos"), backgroundColor: Colors.orange)
+      );
+      return;
+    }
+
+    if (pin != confirm) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Los PINs no coinciden"), backgroundColor: Colors.red)
+      );
+      return;
+    }
+    print("DEBUG: El ID actual es: ${widget.usuarioId}");
+    setState(() => _isUpdating = true);
+
+    try {
+    // Ejemplo de la petición en Flutter
+      final response = await http.post(
+        Uri.parse('http://localhost/Hello-Kitty-habitos-de-scroll/api_hk/update.php'),
+        headers: {
+          "Content-Type": "application/json", // VITAL
+          "Accept": "application/json",
+        },
+        body: jsonEncode({
+          'id_usuario': widget.usuarioId, // Revisa que este ID no sea nulo
+          'nuevo_pin': pin,
+        }),
+      );
+
+      final resData = jsonDecode(response.body);
+      print("Enviando ID: ${widget.usuarioId} y PIN: $pin"); // Mira esto en la consola de VS Code
+      if (resData['status'] == 'success') {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("¡PIN Actualizado correctamente!"), backgroundColor: Colors.green)
+        );
+        Navigator.pop(context); // Regresa a AccountSettingsScreen
+      } else {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(resData['message']), backgroundColor: Colors.red)
+        );
+      }
+    } catch (e) {
+      print("Error: $e");
+    } finally {
+      if (mounted) setState(() => _isUpdating = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -2107,27 +2217,27 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
 
                           // --- CAMPOS DE PIN ---
                           _inputFieldLocal(
-                            hint: 'Nuevo PIN (4 dígitos)',
-                            icon: Icons.lock_outline,
-                            isPass: true,
-                            obscureValue: _obscureNewPin,
-                            keyboardType: TextInputType.number,
-                            onToggleVisibility: () {
-                              setState(() => _obscureNewPin = !_obscureNewPin);
-                            },
-                          ),
-                          const SizedBox(height: 20),
+                          hint: 'Nuevo PIN (4 dígitos)',
+                          icon: Icons.lock_outline,
+                          isPass: true,
+                          controller: _pinController, // <--- ASIGNADO
+                          obscureValue: _obscureNewPin,
+                          keyboardType: TextInputType.number,
+                          onToggleVisibility: () => setState(() => _obscureNewPin = !_obscureNewPin),
+                        ),
+                        
+                        const SizedBox(height: 20),
 
-                          _inputFieldLocal(
-                            hint: 'Confirmar Nuevo PIN',
-                            icon: Icons.check_circle_outline,
-                            isPass: true,
-                            obscureValue: _obscureConfirmPin,
-                            keyboardType: TextInputType.number,
-                            onToggleVisibility: () {
-                              setState(() => _obscureConfirmPin = !_obscureConfirmPin);
-                            },
-                          ),
+                        // Campo: Confirmar PIN
+                        _inputFieldLocal(
+                          hint: 'Confirmar Nuevo PIN',
+                          icon: Icons.check_circle_outline,
+                          isPass: true,
+                          controller: _confirmPinController, // <--- ASIGNADO
+                          obscureValue: _obscureConfirmPin,
+                          keyboardType: TextInputType.number,
+                          onToggleVisibility: () => setState(() => _obscureConfirmPin = !_obscureConfirmPin),
+                        ),
                           const SizedBox(height: 30),
                         ],
                       ),
@@ -2141,10 +2251,8 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
                   child: Column(
                     children: [
                       ElevatedButton(
-                        onPressed: () {
-                          // Lógica para guardar el nuevo PIN
-                          Navigator.pop(context);
-                        },
+                        // Si está cargando, el botón se deshabilita automáticamente (null)
+                        onPressed: _isUpdating ? null : _updatePin, 
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFFD6213B),
                           minimumSize: const Size(double.infinity, 60),
@@ -2153,14 +2261,16 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
                           ),
                           elevation: 5,
                         ),
-                        child: const Text(
-                          'ACTUALIZAR PIN',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
+                        child: _isUpdating 
+                          ? const CircularProgressIndicator(color: Colors.white) // Muestra carga
+                          : const Text(
+                              'ACTUALIZAR PIN',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
                       ),
                       const SizedBox(height: 15),
                       TextButton(
@@ -2211,52 +2321,59 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
   Widget _inputFieldLocal({
     required String hint,
     required IconData icon,
+    required TextEditingController controller, // <--- Agregado
     bool? isPass,
     bool? obscureValue,
     TextInputType? keyboardType,
     VoidCallback? onToggleVisibility,
   }) {
     return Container(
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.9),
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          )
-        ],
-      ),
+      // ... tu decoración de container ...
       child: TextField(
+        controller: controller, // <--- MUY IMPORTANTE
         obscureText: (isPass ?? false) ? (obscureValue ?? false) : false,
-        keyboardType: keyboardType ?? TextInputType.text,
-        maxLength: (keyboardType == TextInputType.number) ? 4 : null,
-        textAlign: (keyboardType == TextInputType.number) ? TextAlign.center : TextAlign.start,
-        style: (keyboardType == TextInputType.number) 
-            ? const TextStyle(fontSize: 22, letterSpacing: 10, fontWeight: FontWeight.bold)
-            : null,
+        keyboardType: keyboardType,
+        maxLength: 4,
+        textAlign: TextAlign.center,
         decoration: InputDecoration(
-          counterText: "", // Oculta el contador de caracteres
+          counterText: "",
           hintText: hint,
-          hintStyle: const TextStyle(fontSize: 14, letterSpacing: 0),
           prefixIcon: Icon(icon, color: const Color(0xFFD6213B)),
+          suffixIcon: isPass == true ? IconButton(icon: Icon(obscureValue! ? Icons.visibility_off : Icons.visibility), onPressed: onToggleVisibility) : null,
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
-          suffixIcon: (isPass ?? false)
-              ? IconButton(
-                  icon: Icon(
-                    (obscureValue ?? false) ? Icons.visibility_off : Icons.visibility,
-                    color: Colors.grey,
-                  ),
-                  onPressed: onToggleVisibility,
-                )
-              : null,
         ),
       ),
     );
   }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // opciones tutor
 // Asignar tarea
